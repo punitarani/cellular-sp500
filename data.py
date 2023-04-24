@@ -2,7 +2,10 @@
 data.py
 """
 
+import datetime as dt
+
 import pandas as pd
+import pandas_datareader.data as web
 
 
 def get_sp500_tickers() -> list[str]:
@@ -22,5 +25,19 @@ def get_sp500_tickers() -> list[str]:
     return list(df.Symbol)
 
 
+def get_stock_data(ticker) -> pd.DataFrame:
+    """Get historical OHLC data for a given ticker from 1990 to 2022 using stooq"""
+    start_date = dt.datetime(1990, 1, 1)
+    end_date = dt.datetime(2022, 12, 31)
+
+    # Fetching the stock data
+    return web.DataReader(ticker, 'stooq', start_date, end_date)
+
+
 if __name__ == "__main__":
+    # Get the list of S&P 500 tickers
     print("S&P500 Companies: ", get_sp500_tickers())
+
+    # Get the historical stock data for Apple
+    aapl = get_stock_data('AAPL')
+    print(aapl.head())
