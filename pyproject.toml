@@ -10,6 +10,7 @@ packages = [{include = "cellular_sp500"}]
 python = "^3.10"
 lxml = "^4.9.2"
 pandas = "^2.0.0"
+pandas-datareader = "^0.10.0"
 
 
 [build-system]
