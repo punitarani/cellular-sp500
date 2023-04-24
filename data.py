@@ -26,7 +26,10 @@ def get_sp500_tickers() -> list[str]:
     # Ensure there are 503 tickers
     assert len(df) == 503, "There should be 503 tickers in the S&P 500"
 
-    return list(df.Symbol)
+    tickers = list(df.Symbol)
+
+    # Update tickers to replace `.` with `-`
+    return [ticker.replace('.', '-') for ticker in tickers]
 
 
 def get_stock_data(ticker) -> pd.DataFrame:
