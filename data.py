@@ -39,6 +39,12 @@ def get_stock_data(ticker) -> pd.DataFrame:
     return data
 
 
+def save_stock_data_as_parquet(ticker: str) -> None:
+    """Save historical stock data as parquet file for a given ticker"""
+    data = get_stock_data(ticker)
+    data.to_parquet(f"data/{ticker}.parquet")
+
+
 if __name__ == "__main__":
     # Get the list of S&P 500 tickers
     print("S&P500 Companies: ", get_sp500_tickers())
