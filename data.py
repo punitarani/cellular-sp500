@@ -41,3 +41,6 @@ if __name__ == "__main__":
     # Get the historical stock data for Apple
     aapl = get_stock_data('AAPL')
     print(aapl.head())
+
+    # Save the data to a parquet file
+    aapl.to_parquet('data/aapl.parquet')
