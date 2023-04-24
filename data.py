@@ -3,6 +3,7 @@ data.py
 """
 
 import datetime as dt
+import os
 import time
 from multiprocessing import Pool
 
@@ -88,6 +89,33 @@ def get_and_save_sp500_stock_data() -> None:
 
     print("\nFailed tickers:")
     print(failed_tickers)
+
+
+def get_tickers() -> list[str]:
+    """Get a list of tickers from the filenames in data/ excluding the .parquet extension"""
+    tickers = []
+    data_directory = "data/"
+
+    for file in os.listdir(data_directory):
+        if file.endswith(".parquet"):
+            ticker = file[:-8]  # Remove the .parquet extension
+            tickers.append(ticker)
+
+    return tickers
+
+
+def load_data(ticker: str) -> pd.DataFrame:
+    """Load the parquet file into a DataFrame with necessary processing"""
+    file_path = f"data/{ticker}.parquet"
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"No data file found for ticker {ticker}")
+
+    data = pd.read_parquet(file_path)
+
+    # Perform any necessary processing here (e.g., renaming columns, handling missing data, etc.)
+
+    return data
 
 
 if __name__ == "__main__":
