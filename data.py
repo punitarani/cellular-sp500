@@ -57,24 +57,25 @@ def get_stock_data(ticker) -> pd.DataFrame:
                 raise error
 
 
+def process_ticker_stock_data(ticker) -> tuple:
+    """Process a ticker and return the ticker and a boolean indicating if the ticker was processed successfully"""
+    try:
+        data = get_stock_data(ticker)
+        data.to_parquet(f"data/{ticker}.parquet")
+        return ticker, True
+    except Exception as e:
+        return ticker, False, str(e)
+
+
 def get_and_save_sp500_stock_data() -> None:
     """Fetch historical stock data for S&P 500 companies and save as parquet files"""
     tickers = get_sp500_tickers()
     downloaded_tickers = []
     failed_tickers = []
 
-    def process_ticker(ticker) -> tuple:
-        """Process a ticker and return the ticker and a boolean indicating if the ticker was processed successfully"""
-        try:
-            data = get_stock_data(ticker)
-            data.to_parquet(f"data/{ticker}.parquet")
-            return ticker, True
-        except Exception as e:
-            return ticker, False, str(e)
-
     # Use multiprocessing to speed up the process
     with Pool(processes=8) as pool:
-        results = list(tqdm(pool.imap_unordered(process_ticker, tickers), total=len(tickers)))
+        results = list(tqdm(pool.imap_unordered(process_ticker_stock_data, tickers), total=len(tickers)))
 
     for result in results:
         if result[1]:
