@@ -3,7 +3,8 @@ data.py
 """
 
 import datetime as dt
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from multiprocessing import Pool
 
 import pandas as pd
 import pandas_datareader as web
@@ -33,13 +34,23 @@ def get_stock_data(ticker) -> pd.DataFrame:
     start_date = dt.datetime(1990, 1, 1)
     end_date = dt.datetime(2022, 12, 31)
 
-    # Fetching the stock data
-    data = web.DataReader(ticker, 'stooq', start_date, end_date)
+    retries = 3
+    delay = 1
+    for retry in range(retries):
+        try:
+            # Fetching the stock data
+            data = web.DataReader(ticker, 'stooq', start_date, end_date)
 
-    # Sort the data by date in ascending order
-    data.sort_index(inplace=True)
+            # Sort the data by date in ascending order
+            data.sort_index(inplace=True)
 
-    return data
+            return data
+        except Exception as error:
+            if retry < retries - 1:
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                raise error
 
 
 def save_stock_data_as_parquet(ticker: str) -> None:
@@ -48,24 +59,30 @@ def save_stock_data_as_parquet(ticker: str) -> None:
     data.to_parquet(f"data/{ticker}.parquet")
 
 
+def process_ticker(ticker) -> tuple:
+    """Process a ticker and return the ticker and a boolean indicating if the ticker was processed successfully"""
+    try:
+        save_stock_data_as_parquet(ticker)
+        return ticker, True
+    except Exception as e:
+        return ticker, False, str(e)
+
+
 def get_and_save_sp500_stock_data() -> None:
     """Fetch historical stock data for S&P 500 companies and save as parquet files"""
     tickers = get_sp500_tickers()
     downloaded_tickers = []
     failed_tickers = []
 
-    # Use multithreading to speed up the process
-    with ThreadPoolExecutor() as executor:
-        # Wrap the futures list with tqdm to track progress
-        futures = {executor.submit(save_stock_data_as_parquet, ticker): ticker for ticker in tickers}
-        for future in tqdm(as_completed(futures), total=len(futures)):
-            ticker = futures[future]
-            try:
-                future.result()
-                downloaded_tickers.append(ticker)
-            except Exception as e:
-                failed_tickers.append(ticker)
-                print(f"Error downloading {ticker}: {e}")
+    # Use multiprocessing to speed up the process
+    with Pool(processes=8) as pool:
+        results = list(tqdm(pool.imap_unordered(process_ticker, tickers), total=len(tickers)))
+
+    for result in results:
+        if result[1]:
+            downloaded_tickers.append(result[0])
+        else:
+            failed_tickers.append(result[0])
 
     print("\nDownloaded tickers:")
     print(downloaded_tickers)
