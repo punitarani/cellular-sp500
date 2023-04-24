@@ -118,6 +118,29 @@ def load_data(ticker: str) -> pd.DataFrame:
     return data
 
 
+def generate_daily_change_df() -> pd.DataFrame:
+    """Generate a DataFrame with tickers as columns, dates as rows, and daily percentage change as values"""
+    tickers = get_tickers()
+    daily_change_dfs = []
+
+    for ticker in tqdm(tickers, desc="Processing tickers"):
+        data = load_data(ticker)
+
+        # Calculate the daily percentage change
+        data[f'{ticker}_daily_change'] = data['Close'].pct_change() * 100
+
+        # Keep only the daily change column and the date index
+        daily_change_dfs.append(data[[f'{ticker}_daily_change']])
+
+    # Merge DataFrames on the date index
+    daily_change_df = pd.concat(daily_change_dfs, axis=1, join='outer')
+
+    # Handle missing data (e.g., fill with zeros or interpolate)
+    daily_change_df.fillna(0, inplace=True)
+
+    return daily_change_df
+
+
 if __name__ == "__main__":
     # Get the list of S&P 500 tickers
     print("S&P500 Companies: ", get_sp500_tickers())
