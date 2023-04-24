@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "cellular_sp500"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.10,<3.12"
 jupyter = "^1.0.0"
 lxml = "^4.9.2"
 networkx = "^3.1"
@@ -15,6 +15,7 @@ pandas = "^2.0.0"
 pandas-datareader = "^0.10.0"
 plotly = "^5.14.1"
 pyarrow = "^11.0.0"
+scipy = "^1.10.1"
 tqdm = "^4.65.0"
 
 
