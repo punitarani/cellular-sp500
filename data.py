@@ -7,7 +7,6 @@ import time
 from multiprocessing import Pool
 
 import pandas as pd
-import pandas_datareader as web
 import pandas_datareader.data as web
 from tqdm import tqdm
 
