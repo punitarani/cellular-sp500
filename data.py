@@ -3,6 +3,7 @@ data.py
 """
 
 import datetime as dt
+import json
 import os
 import time
 from multiprocessing import Pool
@@ -107,6 +108,64 @@ def validate_data() -> list[str]:
     return invalid_tickers
 
 
+def get_market_cap(ticker) -> float:
+    """Get the market cap for a given ticker"""
+    data = web.get_quote_yahoo(ticker)
+    market_cap = data['marketCap'][0]
+
+    # Converting market cap to float
+    market_cap = float(market_cap)
+
+    return market_cap
+
+
+def process_ticker_market_cap(ticker) -> tuple:
+    """Process a ticker and return the ticker and its market cap"""
+
+    retries = 3
+    delay = 1
+    for retry in range(retries):
+        try:
+            market_cap = get_market_cap(ticker)
+            return ticker, market_cap
+        except Exception:
+            if retry < retries - 1:
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                return ticker, None
+
+
+def get_and_save_sp500_market_caps() -> None:
+    """Get the market caps for S&P 500 companies and save as a CSV file"""
+    tickers = get_sp500_tickers()
+    saved_tickers = []
+    failed_tickers = []
+
+    # Store the market caps in a dictionary
+    market_caps = {}
+
+    with Pool(processes=8) as pool:
+        results = list(tqdm(pool.imap_unordered(process_ticker_market_cap, tickers), total=len(tickers)))
+
+    for result in results:
+        ticker, market_cap = result
+        market_caps[ticker] = market_cap
+
+        if market_cap:
+            saved_tickers.append(ticker)
+        else:
+            failed_tickers.append(ticker)
+
+    # Sort the market caps by ticker symbol
+    market_caps = dict(sorted(market_caps.items()))
+
+    # Save the market caps to a JSON file
+    with open('market_caps.json', 'w') as f:
+        json.dump(market_caps, f)
+        print("Saved market caps to market_caps.json")
+
+
 def get_tickers() -> list[str]:
     """Get a list of tickers from the filenames in data/ excluding the .parquet extension"""
     tickers = []
@@ -165,3 +224,6 @@ if __name__ == "__main__":
     # Download and save the stock data for S&P 500 companies
     get_and_save_sp500_stock_data()
     validate_data()
+
+    # Get the market caps for S&P 500 companies
+    get_and_save_sp500_market_caps()
