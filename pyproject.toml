@@ -10,6 +10,7 @@ packages = [{include = "cellular_sp500"}]
 python = "^3.10"
 jupyter = "^1.0.0"
 lxml = "^4.9.2"
+networkx = "^3.1"
 pandas = "^2.0.0"
 pandas-datareader = "^0.10.0"
 plotly = "^5.14.1"
