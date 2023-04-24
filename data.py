@@ -91,6 +91,25 @@ def get_and_save_sp500_stock_data() -> None:
     print(failed_tickers)
 
 
+def validate_data() -> list[str]:
+    """Validate data in each parquet file and return a list of invalid files"""
+
+    # Define the required columns
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+
+    tickers = get_tickers()
+    invalid_tickers = []
+
+    for ticker in tqdm(tickers, desc="Validating .parquet files"):
+        data = load_data(ticker)
+
+        # Check if all required columns are present
+        if not all(column in data.columns for column in required_columns):
+            invalid_tickers.append(ticker)
+
+    return invalid_tickers
+
+
 def get_tickers() -> list[str]:
     """Get a list of tickers from the filenames in data/ excluding the .parquet extension"""
     tickers = []
