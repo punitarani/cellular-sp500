@@ -147,12 +147,13 @@ def generate_daily_change_df() -> pd.DataFrame:
 
     for ticker in tqdm(tickers, desc="Processing tickers"):
         data = load_data(ticker)
+        col_name = ticker
 
         # Calculate the daily percentage change
-        data[f'{ticker}_daily_change'] = data['Close'].pct_change() * 100
+        data[col_name] = data['Close'].pct_change() * 100
 
         # Keep only the daily change column and the date index
-        daily_change_dfs.append(data[[f'{ticker}_daily_change']])
+        daily_change_dfs.append(data[[col_name]])
 
     # Merge DataFrames on the date index
     daily_change_df = pd.concat(daily_change_dfs, axis=1, join='outer')
