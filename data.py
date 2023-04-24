@@ -31,7 +31,12 @@ def get_stock_data(ticker) -> pd.DataFrame:
     end_date = dt.datetime(2022, 12, 31)
 
     # Fetching the stock data
-    return web.DataReader(ticker, 'stooq', start_date, end_date)
+    data = web.DataReader(ticker, 'stooq', start_date, end_date)
+
+    # Sort the data by date in ascending order
+    data.sort_index(inplace=True)
+
+    return data
 
 
 if __name__ == "__main__":
