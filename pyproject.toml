@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "cellular-sp500"
+version = "0.1.0"
+description = "S&P 500 Simulator with Cellular Automata"
+authors = ["Punit Arani <punitsai36@gmail.com>"]
+readme = "README.md"
+packages = [{include = "cellular_sp500"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
