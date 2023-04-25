@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tqdm import tqdm
 
 
 class LSTMModel(nn.Module):
@@ -74,7 +73,7 @@ def train_lstm_model(
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    for epoch in tqdm(range(epochs), desc="Training", ncols=100, leave=True):
+    for epoch in range(epochs):
         inputs = torch.tensor(X, dtype=torch.float32)
         targets = torch.tensor(y, dtype=torch.float32)
         optimizer.zero_grad()
