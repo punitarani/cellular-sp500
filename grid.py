@@ -113,17 +113,14 @@ if __name__ == "__main__":
     cluster_df = pd.DataFrame(
         {"symbol": list(market_caps.keys()), "cluster": clusters, "market_cap": list(market_caps.values())})
 
-    # Calculate the sum of market caps within each cluster and sort the clusters based on the sum
-    cluster_sum_df = cluster_df.groupby('cluster').sum().sort_values(by='market_cap', ascending=False).reset_index()
+    # Calculate the mean of market caps within each cluster and sort the clusters based on the mean
+    cluster_mean_df = cluster_df.groupby('cluster').mean().sort_values(by='market_cap', ascending=False).reset_index()
 
     # Assign new cluster numbers based on the sorted order
-    cluster_sum_df['new_cluster'] = range(1, len(cluster_sum_df) + 1)
+    cluster_mean_df['new_cluster'] = range(1, len(cluster_mean_df) + 1)
 
-    # Convert the 'cluster' column to 'int64' datatype
-    cluster_df['cluster'] = cluster_df['cluster'].astype('int64')
-
-    # Merge the cluster_sum_df with cluster_df to assign the new cluster numbers
-    cluster_df = cluster_df.merge(cluster_sum_df[['cluster', 'new_cluster']], on='cluster', how='left').drop(
+    # Merge the cluster_mean_df with cluster_df to assign the new cluster numbers
+    cluster_df = cluster_df.merge(cluster_mean_df[['cluster', 'new_cluster']], on='cluster', how='left').drop(
         columns='cluster').rename(columns={'new_cluster': 'cluster'})
 
     # Sort the DataFrame based on cluster number and market cap in descending order
