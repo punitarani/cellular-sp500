@@ -1,5 +1,11 @@
 """Generate the weights for the grid."""
 
+import torch.multiprocessing as mp
+
+# Set the start method to "spawn"
+mp.set_start_method("spawn")
+
+# Now import the rest of the modules
 import multiprocessing
 import pickle
 
@@ -7,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.preprocessing import MinMaxScaler
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from grid import get_neighbors, load_grid
 from lstm import LSTMModel, train_lstm_model
@@ -144,8 +150,6 @@ def create_and_train_models(stock_A, stock_B, stock_A_symbol, stock_B_symbol):
 
 
 if __name__ == "__main__":
-    torch.multiprocessing.set_start_method("spawn")
-
     # Load the grid of stocks
     grid = load_grid()
     rows, cols = grid.shape
