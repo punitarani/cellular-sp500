@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
-from tqdm import tqdm
 
 
 def load_grid():
@@ -28,15 +27,16 @@ def get_neighbors(grid, row, col):
     return neighbors
 
 
-def find_nearest_empty_cell(x, y, grid):
+def find_nearest_empty_cell(grid):
     """
-    Find the nearest empty cell in a clockwise spiral pattern starting from (x, y).
+    Find the nearest empty cell in a clockwise spiral pattern starting from the center.
     """
+    grid_size_x, grid_size_y = len(grid), len(grid[0])
+    x, y = grid_size_x // 2, grid_size_y // 2
     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     direction_index = 0
     steps_same_direction = 1
     steps_left_same_direction = 1
-    grid_size_x, grid_size_y = len(grid), len(grid[0])
 
     while True:
         if 0 <= x < grid_size_x and 0 <= y < grid_size_y:
@@ -137,12 +137,8 @@ if __name__ == "__main__":
     grid = [[None for _ in range(25)] for _ in range(20)]
 
     for stock, row in pos_df.iterrows():
-        x, y = row["grid_x"], row["grid_y"]
-        if grid[x][y] is None:
-            grid[x][y] = stock
-        else:
-            x, y = find_nearest_empty_cell(x, y, grid)
-            grid[x][y] = stock
+        x, y = find_nearest_empty_cell(grid)
+        grid[x][y] = stock
     print("Placed stocks in a grid")
 
     # Convert the grid to a DataFrame and save it to a CSV file
