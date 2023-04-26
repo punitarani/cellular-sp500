@@ -11,10 +11,12 @@ from tqdm import tqdm
 
 
 def load_grid():
+    """Load the grid from the CSV file."""
     return pd.read_csv("sp500_grid.csv")
 
 
 def get_neighbors(grid, row, col):
+    """Get the neighbors of a cell in the grid."""
     neighbors = []
     for i in range(-1, 2):
         for j in range(-1, 2):
