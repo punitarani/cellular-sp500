@@ -171,7 +171,7 @@ if __name__ == "__main__":
                 )
 
     # Use multiprocessing to create and train models
-    with multiprocessing.Pool(processes=4) as pool:
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         trained_models = pool.starmap(
             create_and_train_models,
             tqdm(stock_pairs, desc="Training Models", ncols=100),
