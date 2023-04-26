@@ -173,7 +173,7 @@ if __name__ == "__main__":
                 )
 
     # Use multiprocessing to create and train models
-    with torch.multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+    with mp.Pool(processes=multiprocessing.cpu_count()) as pool:
         trained_models = pool.starmap(
             create_and_train_models,
             tqdm(stock_pairs, desc="Training Models", ncols=100),
