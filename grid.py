@@ -2,6 +2,8 @@
 
 import json
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -51,6 +53,28 @@ def find_nearest_empty_cell(grid):
             if direction_index % 2 == 0:
                 steps_same_direction += 1
             steps_left_same_direction = steps_same_direction
+
+
+def plot_grid(grid, sorted_cluster_df):
+    fig, ax = plt.subplots(figsize=(15, 12))
+    colors = plt.cm.get_cmap("tab20", len(sorted_cluster_df["cluster"].unique()))
+
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j] is not None:
+                stock, cluster = grid[i][j]
+                color = colors(cluster - 1)
+                rect = Rectangle((j, i), 1, 1, facecolor=color, edgecolor='black', linewidth=1)
+                ax.add_patch(rect)
+                ax.annotate(stock, (j + 0.5, i + 0.5), textcoords="offset points", xytext=(0, 0), ha='center', va='center', fontsize=8)
+
+    ax.set_xticks(range(len(grid[0])), minor=False)
+    ax.set_yticks(range(len(grid)), minor=False)
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.grid(True, which='major', color='black', linewidth=1)
+
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -135,13 +159,16 @@ if __name__ == "__main__":
 
     # Place stocks in the 20x25 grid
     grid = [[None for _ in range(25)] for _ in range(20)]
+    symbol_to_cluster = dict(zip(sorted_cluster_df["symbol"], sorted_cluster_df["cluster"]))
 
     for stock, row in pos_df.iterrows():
         x, y = find_nearest_empty_cell(grid)
-        grid[x][y] = stock
+        grid[x][y] = (stock, symbol_to_cluster[stock])
     print("Placed stocks in a grid")
 
     # Convert the grid to a DataFrame and save it to a CSV file
     grid_df = pd.DataFrame(grid)
     grid_df.to_csv("sp500_grid.csv", index=False)
     print("Saved grid to sp500_grid.csv")
+
+    plot_grid(grid, sorted_cluster_df)
