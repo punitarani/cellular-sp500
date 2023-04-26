@@ -1,5 +1,6 @@
 """Generate the weights for the grid."""
 
+import multiprocessing
 import pickle
 
 import numpy as np
@@ -96,7 +97,7 @@ def save_model_and_scaler(
 
     torch.save(model.state_dict(), f"weights/{filename}.pth")
     torch.save(model, f"models/{filename}.pt")
-    with open(f"models/{filename}_scaler.pkl", "wb") as f:
+    with open(f"scalers/{filename}.pkl", "wb") as f:
         pickle.dump(scaler, f)
 
 
@@ -114,14 +115,35 @@ def load_model_and_scaler(filename: str) -> tuple[LSTMModel, MinMaxScaler]:
     model = LSTMModel()
     model.load_state_dict(torch.load(f"weights/{filename}.pth"))
     model.eval()
-    with open(f"models/{filename}_scaler.pkl", "rb") as f:
+    with open(f"scalers/{filename}.pkl", "rb") as f:
         scaler = pickle.load(f)
     return model, scaler
 
 
-if __name__ == "__main__":
-    models_dict = {}
+def create_and_train_models(stock_A, stock_B, stock_A_symbol, stock_B_symbol):
+    """Create and train models for a pair of stocks.
 
+    Args:
+        stock_A (pd.Series): Time series of stock A.
+        stock_B (pd.Series): Time series of stock B.
+        stock_A_symbol (str): Symbol of stock A.
+        stock_B_symbol (str): Symbol of stock B.
+
+    Returns:
+        Tuple: Tuple containing the key for the pair and the trained models.
+    """
+    model_key = f"{stock_A_symbol}-{stock_B_symbol}"
+    models_A, models_B = create_models_for_pair(stock_A, stock_B)
+    save_model_and_scaler(
+        models_A[0], models_A[1], f"model_A_{stock_A_symbol}-{stock_B_symbol}"
+    )
+    save_model_and_scaler(
+        models_B[0], models_B[1], f"model_B_{stock_A_symbol}-{stock_B_symbol}"
+    )
+    return model_key, (models_A, models_B)
+
+
+if __name__ == "__main__":
     # Load the grid of stocks
     grid = load_grid()
     rows, cols = grid.shape
@@ -131,8 +153,12 @@ if __name__ == "__main__":
     df = pd.read_csv("sp500_daily_change.csv")
     print(f"Loaded DataFrame of shape {df.shape}")
 
-    for row in trange(rows, desc="Rows", ncols=100):
-        for col in trange(cols, desc="Cols", ncols=100, leave=False):
+    models_dict = {}
+
+    stock_pairs = []
+
+    for row in range(rows):
+        for col in range(cols):
             stock_symbol = grid.iat[row, col]
             stock = df[stock_symbol]
             neighbors = get_neighbors(grid, row, col)
@@ -140,17 +166,20 @@ if __name__ == "__main__":
             for neighbor_row, neighbor_col in neighbors:
                 neighbor_stock_symbol = grid.iat[neighbor_row, neighbor_col]
                 neighbor_stock = df[neighbor_stock_symbol]
+                stock_pairs.append(
+                    (stock, neighbor_stock, stock_symbol, neighbor_stock_symbol)
+                )
 
-                model_key = f"{stock_symbol}-{neighbor_stock_symbol}"
-                if model_key not in models_dict:
-                    models_A, models_B = create_models_for_pair(stock, neighbor_stock)
-                    models_dict[model_key] = (models_A, models_B)
+    # Use multiprocessing to create and train models
+    with multiprocessing.Pool(processes=4) as pool:
+        trained_models = pool.starmap(
+            create_and_train_models,
+            tqdm(stock_pairs, desc="Training Models", ncols=100),
+            chunksize=1,
+        )
 
-    for model_key, (model_A, model_B) in models_dict.items():
-        stock_A_idx, stock_B_idx = model_key.split("-")
-        stock_A = df.columns[int(stock_A_idx)]
-        stock_B = df.columns[int(stock_B_idx)]
-        save_model_and_scaler(model_A[0], model_A[1], f"model_A_{stock_A}-{stock_B}")
-        save_model_and_scaler(model_B[0], model_B[1], f"model_B_{stock_A}-{stock_B}")
+    # Update models_dict with trained models
+    for model_key, models in trained_models:
+        models_dict[model_key] = models
 
     print("Done training models")
