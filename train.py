@@ -1,8 +1,6 @@
 """Generate the weights for the grid."""
 
-import torch.multiprocessing as mp  # Replace "import multiprocessing"
-mp.set_start_method("spawn")  # Set the start method to "spawn"
-
+import multiprocessing
 import pickle
 
 import numpy as np
@@ -173,7 +171,7 @@ if __name__ == "__main__":
                 )
 
     # Use multiprocessing to create and train models
-    with mp.Pool(processes=multiprocessing.cpu_count()) as pool:
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         trained_models = pool.starmap(
             create_and_train_models,
             tqdm(stock_pairs, desc="Training Models", ncols=100),
