@@ -1,8 +1,12 @@
 """Generate the weights for the grid."""
 
-import torch.multiprocessing as mp  # Replace "import multiprocessing"
-mp.set_start_method("spawn")  # Set the start method to "spawn"
+import torch.multiprocessing as mp
 
+# Set the start method to "spawn"
+mp.set_start_method("spawn")
+
+# Now import the rest of the modules
+import multiprocessing
 import pickle
 
 import numpy as np
