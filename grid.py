@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
+from tqdm import tqdm
 
 
 def load_grid():
@@ -74,7 +75,21 @@ if __name__ == "__main__":
     print("Performed hierarchical clustering")
 
     # Create a DataFrame containing stock symbol, cluster number, and market cap
-    cluster_df = pd.DataFrame({"symbol": list(market_caps.keys()), "cluster": clusters, "market_cap": list(market_caps.values())})
+    cluster_df = pd.DataFrame(
+        {"symbol": list(market_caps.keys()), "cluster": clusters, "market_cap": list(market_caps.values())})
+
+    # Calculate the sum of market caps within each cluster and sort the clusters based on the sum
+    cluster_sum_df = cluster_df.groupby('cluster').sum().sort_values(by='market_cap', ascending=False).reset_index()
+
+    # Assign new cluster numbers based on the sorted order
+    cluster_sum_df['new_cluster'] = range(1, len(cluster_sum_df) + 1)
+
+    # Convert the 'cluster' column to 'int64' datatype
+    cluster_df['cluster'] = cluster_df['cluster'].astype('int64')
+
+    # Merge the cluster_sum_df with cluster_df to assign the new cluster numbers
+    cluster_df = cluster_df.merge(cluster_sum_df[['cluster', 'new_cluster']], on='cluster', how='left').drop(
+        columns='cluster').rename(columns={'new_cluster': 'cluster'})
 
     # Sort the DataFrame based on cluster number and market cap in descending order
     sorted_cluster_df = cluster_df.sort_values(by=["cluster", "market_cap"], ascending=[True, False])
@@ -127,7 +142,6 @@ if __name__ == "__main__":
             x, y = find_nearest_empty_cell(x, y, grid)
             grid[x][y] = stock
     print("Placed stocks in a grid")
-
 
     # Convert the grid to a DataFrame and save it to a CSV file
     grid_df = pd.DataFrame(grid)
