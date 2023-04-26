@@ -1,17 +1,16 @@
 """Generate the weights for the grid."""
 
+import multiprocessing
 import pickle
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.multiprocessing as mp
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from grid import get_neighbors, load_grid
 from lstm import LSTMModel, train_lstm_model
-from train_utils import create_and_train_models
 
 # Set device to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -121,6 +120,29 @@ def load_model_and_scaler(filename: str) -> tuple[LSTMModel, MinMaxScaler]:
     return model, scaler
 
 
+def create_and_train_models(stock_A, stock_B, stock_A_symbol, stock_B_symbol):
+    """Create and train models for a pair of stocks.
+
+    Args:
+        stock_A (pd.Series): Time series of stock A.
+        stock_B (pd.Series): Time series of stock B.
+        stock_A_symbol (str): Symbol of stock A.
+        stock_B_symbol (str): Symbol of stock B.
+
+    Returns:
+        Tuple: Tuple containing the key for the pair and the trained models.
+    """
+    model_key = f"{stock_A_symbol}-{stock_B_symbol}"
+    models_A, models_B = create_models_for_pair(stock_A, stock_B)
+    save_model_and_scaler(
+        models_A[0], models_A[1], f"model_A_{stock_A_symbol}-{stock_B_symbol}"
+    )
+    save_model_and_scaler(
+        models_B[0], models_B[1], f"model_B_{stock_A_symbol}-{stock_B_symbol}"
+    )
+    return model_key, (models_A, models_B)
+
+
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method("spawn")
 
@@ -133,7 +155,10 @@ if __name__ == "__main__":
     df = pd.read_csv("sp500_daily_change.csv")
     print(f"Loaded DataFrame of shape {df.shape}")
 
+    models_dict = {}
+
     stock_pairs = []
+
     for row in range(rows):
         for col in range(cols):
             stock_symbol = grid.iat[row, col]
@@ -148,20 +173,15 @@ if __name__ == "__main__":
                 )
 
     # Use multiprocessing to create and train models
-    models_dict = {}
-    processes = []
-    results_queue = mp.Queue()
+    with torch.multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+        trained_models = pool.starmap(
+            create_and_train_models,
+            tqdm(stock_pairs, desc="Training Models", ncols=100),
+            chunksize=1,
+        )
 
-    for stock, neighbor_stock, stock_symbol, neighbor_stock_symbol in tqdm(stock_pairs, desc="Training Models", ncols=100):
-        p = mp.Process(target=create_and_train_models, args=(stock, neighbor_stock, stock_symbol, neighbor_stock_symbol, results_queue))
-        p.start()
-        processes.append(p)
-
-    for p in processes:
-        p.join()
-
-    while not results_queue.empty():
-        model_key, models = results_queue.get()
+    # Update models_dict with trained models
+    for model_key, models in trained_models:
         models_dict[model_key] = models
 
     print("Done training models")
