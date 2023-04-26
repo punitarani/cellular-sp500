@@ -1,6 +1,7 @@
 """Generate the grid"""
 
 import json
+import random
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -55,15 +56,42 @@ def find_nearest_empty_cell(grid):
             steps_left_same_direction = steps_same_direction
 
 
-def place_stock_in_grid(grid, stock, symbol_to_cluster):
+def place_stock_near_center(grid, stock, symbol_to_cluster):
     """
-    Place the stock in the nearest empty cell in a clockwise spiral pattern starting from the center.
+    Place the stock in an empty cell close to the center.
     """
-    x, y = find_nearest_empty_cell(grid)
-    grid[x][y] = (stock, symbol_to_cluster[stock])
+    grid_size_x, grid_size_y = len(grid), len(grid[0])
+    center_x, center_y = grid_size_x // 2, grid_size_y // 2
+
+    shuffled_positions = [(i, j) for i in range(grid_size_x) for j in range(grid_size_y)]
+    random.shuffle(shuffled_positions)
+
+    for x, y in shuffled_positions:
+        if grid[x][y] is None:
+            grid[x][y] = (stock, symbol_to_cluster[stock])
+            return x, y
+    return None, None
+
+
+def place_stock_around(grid, stock, symbol_to_cluster, starting_x, starting_y):
+    """
+    Place the stock in an empty cell around the starting position.
+    """
+    grid_size_x, grid_size_y = len(grid), len(grid[0])
+
+    shuffled_positions = [(i, j) for i in range(-1, 2) for j in range(-1, 2) if i != 0 or j != 0]
+    random.shuffle(shuffled_positions)
+
+    for dx, dy in shuffled_positions:
+        x, y = starting_x + dx, starting_y + dy
+        if 0 <= x < grid_size_x and 0 <= y < grid_size_y and grid[x][y] is None:
+            grid[x][y] = (stock, symbol_to_cluster[stock])
+            return x, y
+    return None, None
 
 
 def plot_grid(grid, sorted_cluster_df):
+    """Plot the grid with the stocks colored by cluster."""
     fig, ax = plt.subplots(figsize=(15, 12))
     colors = plt.cm.get_cmap("tab20", len(sorted_cluster_df["cluster"].unique()))
 
@@ -114,14 +142,21 @@ if __name__ == "__main__":
         {"symbol": list(market_caps.keys()), "cluster": clusters, "market_cap": list(market_caps.values())})
 
     # Calculate the mean of market caps within each cluster and sort the clusters based on the mean
-    cluster_mean_df = cluster_df.groupby('cluster').mean().sort_values(by='market_cap', ascending=False).reset_index()
+    cluster_mean_df = cluster_df.groupby('cluster').agg({"market_cap": "mean"}).sort_values(by='market_cap',
+                                                                                            ascending=False).reset_index()
 
     # Assign new cluster numbers based on the sorted order
     cluster_mean_df['new_cluster'] = range(1, len(cluster_mean_df) + 1)
 
-    # Merge the cluster_mean_df with cluster_df to assign the new cluster numbers
-    cluster_df = cluster_df.merge(cluster_mean_df[['cluster', 'new_cluster']], on='cluster', how='left').drop(
-        columns='cluster').rename(columns={'new_cluster': 'cluster'})
+    # Ensure both 'cluster' columns are of the same data type
+    cluster_df['cluster'] = cluster_df['cluster'].astype(int)
+    cluster_mean_df['cluster'] = cluster_mean_df['cluster'].astype(int)
+
+    # Create a dictionary with the old and new cluster numbers
+    cluster_map = dict(zip(cluster_mean_df['cluster'], cluster_mean_df['new_cluster']))
+
+    # Update the cluster numbers in the cluster_df dataframe
+    cluster_df['cluster'] = cluster_df['cluster'].map(cluster_map)
 
     # Sort the DataFrame based on cluster number and market cap in descending order
     sorted_cluster_df = cluster_df.sort_values(by=["cluster", "market_cap"], ascending=[True, False])
@@ -167,9 +202,33 @@ if __name__ == "__main__":
     grid = [[None for _ in range(25)] for _ in range(20)]
     symbol_to_cluster = dict(zip(sorted_cluster_df["symbol"], sorted_cluster_df["cluster"]))
 
-    # Place stocks in the 20x25 grid in the spiral order starting from the center
-    for stock, row in sorted_cluster_df.iterrows():
-        place_stock_in_grid(grid, row["symbol"], symbol_to_cluster)
+    # Place stocks in the 20x25 grid around the first stock of each cluster
+    prev_cluster = None
+    starting_x, starting_y = len(grid) // 2, len(grid[0]) // 2
+    radius = 1
+    angle_increment = 2 * np.pi / (len(sorted_cluster_df[sorted_cluster_df["cluster"] == 1]))
+
+    for idx, row in sorted_cluster_df.iterrows():
+        if prev_cluster != row["cluster"]:
+            if row["cluster"] == 1:
+                angle = 0
+                x, y = starting_x + int(radius * np.cos(angle)), starting_y + int(radius * np.sin(angle))
+                grid[x][y] = (row["symbol"], symbol_to_cluster[row["symbol"]])
+                angle += angle_increment
+            else:
+                starting_x, starting_y = place_stock_near_center(grid, row["symbol"], symbol_to_cluster)
+            prev_cluster = row["cluster"]
+        else:
+            if row["cluster"] == 1:
+                x, y = starting_x + int(radius * np.cos(angle)), starting_y + int(radius * np.sin(angle))
+                grid[x][y] = (row["symbol"], symbol_to_cluster[row["symbol"]])
+                angle += angle_increment
+            else:
+                starting_x, starting_y = place_stock_around(grid, row["symbol"], symbol_to_cluster, starting_x,
+                                                            starting_y)
+                if starting_x is None:
+                    starting_x, starting_y = place_stock_near_center(grid, row["symbol"], symbol_to_cluster)
+
     print("Placed stocks in a grid")
 
     # Convert the grid to a DataFrame and save it to a CSV file
