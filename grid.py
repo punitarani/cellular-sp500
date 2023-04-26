@@ -67,11 +67,17 @@ if __name__ == "__main__":
     for stock in smallest_stocks:
         del market_caps[stock]
 
-    # Heirarchical clustering
+    # Hierarchical clustering
     distances = squareform(1 - correlation_matrix.abs())
     linkage_matrix = linkage(distances, method="ward")
     clusters = fcluster(linkage_matrix, t=16, criterion="maxclust")
-    print("Performed heirarchical clustering")
+    print("Performed hierarchical clustering")
+
+    # Create a DataFrame containing stock symbol, cluster number, and market cap
+    cluster_df = pd.DataFrame({"symbol": list(market_caps.keys()), "cluster": clusters, "market_cap": list(market_caps.values())})
+
+    # Sort the DataFrame based on cluster number and market cap in descending order
+    sorted_cluster_df = cluster_df.sort_values(by=["cluster", "market_cap"], ascending=[True, False])
 
     # Generate the weights
     market_caps_series = pd.Series(market_caps)
