@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 class LSTMModel(nn.Module):
     """LSTM model for grid weights."""
 
-    def __init__(self, input_size=1, hidden_size=32, num_layers=1, output_size=1):
+    def __init__(self, input_size=1, hidden_size=32, num_layers=2, output_size=1):
         """
         Constructor for LSTMModel.
 
