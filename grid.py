@@ -11,12 +11,13 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
-
 from tqdm import tqdm
 
 
 def load_grid():
-    return pd.read_csv("sp500_grid.csv")
+    df = pd.read_csv("sp500_grid.csv")
+    df = df.applymap(lambda x: x.split(',')[0].strip('(').strip("'"))
+    return df
 
 
 def get_neighbors(grid, row, col):
@@ -112,7 +113,6 @@ def evaluate_placement(grid, sorted_cluster_df):
                 total_score += market_cap_weight * distance_from_center
 
     return total_score
-
 
 
 def get_best_placement(sorted_cluster_df, iterations=100):
