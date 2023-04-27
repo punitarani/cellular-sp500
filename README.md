@@ -1,13 +1,15 @@
 # S&P 500 Simulator with Cellular Automata
 
-> This won't make you the next [Jim Simons](https://en.wikipedia.org/wiki/Jim_Simons_(mathematician)) but it's a fun way to learn about the stock market and cellular automata.
+> This won't make you the next [Jim Simons](https://en.wikipedia.org/wiki/Jim_Simons_(mathematician))
+> but it's a fun way to learn about the stock market and cellular automata.
 
 ## What's special?
 
 **Cellular Automata meets Neural Networks**
 
 - Grid placement is calculated analytically by using over 30 years of historical data of the S&P 500
-- The grid weights are [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory) models trained on real historical data
+- The grid weights (state transitions) are [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory) models trained
+  on real historical data
 
 ## Usage
 
@@ -37,12 +39,15 @@ python data.py
 
 This will perform the following steps:
 
-1. Get's the latest list of stocks in the S&P 500 from [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)
+1. Get the latest list of stocks in the S&P 500
+   from [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)
 2. Downloads the historical data for each stock from [Stooq](https://stooq.com/db/h/) using `pandas-datareader`
-   - Uses multiprocessing to speed up the download but can take ~2-5 minutes
-   - Use any applicable data source for `pandas-datareader` by updating `data = web.DataReader(ticker, 'stooq', start_date, end_date)` in `get_stock_data()`
-   - Saves the data to `data/<TICKER>.parquet`. Uses `parquet` format for faster read/write times.
-3. Downloads the latest market capitalization data from [Yahoo Finance](https://finance.yahoo.com/) and saves it to `sp500_market_caps.json`
+    - Uses multiprocessing to speed up the download but can take ~2-5 minutes
+    - Use any applicable data source for `pandas-datareader` by
+      updating `data = web.DataReader(ticker, 'stooq', start_date, end_date)` in `get_stock_data()`
+    - Saves the data to `data/<TICKER>.parquet`. Uses `parquet` format for faster read/write times.
+3. Downloads the latest market capitalization data from [Yahoo Finance](https://finance.yahoo.com/) and saves it
+   to `sp500_market_caps.json`
 
 ### Generating the grid
 
@@ -62,6 +67,46 @@ To train the LSTM models for grid weights, run the following command:
 python train.py
 ```
 
-This will train the LSTM models for each neigboring stock pair and save the weights to `weights/<TICKER>.pth`, the model to `models/<TICKER>.pt` and scalers to `scalers/<TICKER>/.pkl`
+This will train the LSTM models for each neighboring stock pair and save the weights to `weights/<TICKER>.pth`,
+the model to `models/<TICKER>.pt` and scalers to `scalers/<TICKER>/.pkl`
 
-> This is a very computationally expensive process. It can take 4-6 hours on an 8 core machine with 16 GB RAM and a CUDA enabled GPU.
+> This is a very computationally expensive process.
+> It took over 7 hours on a 4 core machine with 16 GB RAM laptop and over 3 hours on a 16 core server instance.
+> Currently, the models are trained on CPU only as there are issues training PyTorch LSTM models on GPU.
+
+## Notes
+
+### Using the LSTM Models without the Simulator
+
+The LSTM models can be used without the simulator by using calling the `LSTMModel` class directly.
+
+Using the provided `load_model_and_scaler`, the models and scalers can be loaded from the saved files.
+
+```python
+from train import load_model_and_scaler
+
+# Load the trained models and scalers for AAPL and ORCL
+model_AAPL, scaler_AAPL = load_model_and_scaler("model_A_AAPL-ORCL")
+model_ORCL, scaler_ORCL = load_model_and_scaler("model_B_AAPL-ORCL")
+```
+
+Then, we can use the `predict` method to make predictions for a given input sequence.
+The input sequence should be a `numpy` array of shape `(5, 1)` because the models were trained on 5 day sequences.
+
+```python
+import numpy as np
+
+# Example input sequences for AAPL and ORCL
+input_seq_AAPL = np.array([[0.02], [-0.01], [0.03], [0.01], [-0.02]])
+input_seq_ORCL = np.array([[0.01], [-0.02], [0.03], [0.02], [-0.01]])
+
+# Make predictions
+prediction_AAPL = model_AAPL.predict(scaler_AAPL, input_seq_AAPL)
+prediction_ORCL = model_ORCL.predict(scaler_ORCL, input_seq_ORCL)
+
+print(f"AAPL Prediction: {prediction_AAPL:.4f}")
+print(f"ORCL Prediction: {prediction_ORCL:.4f}")
+
+AAPL Prediction: 0.2618
+ORCL Prediction: -0.0041
+```
