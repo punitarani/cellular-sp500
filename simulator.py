@@ -55,14 +55,18 @@ def predict_neighbors(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarr
 
 
 def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> dict[str, float]:
-    # Initialize predictions dictionary
-    predictions = {}
+    # Initialize predictions dictionary with the input stock_symbol
+    predictions = {stock_symbol: input_seq[-1][0]}
+
     # Initialize queue for BFS
     queue = [(stock_symbol, input_seq, None)]
+
+    # Store the visited cells and the cells that have been updated in the current iteration
     visited = set()
+    updated = set()
 
     # Wrap the while loop with tqdm to show progress
-    with tqdm(total=grid.size, desc="Simulating") as pbar:
+    with tqdm(total=grid.size) as pbar:
         while queue:
             current_symbol, current_input_seq, prev_neighbor_symbol = queue.pop(0)
             if current_symbol not in visited:
@@ -70,8 +74,13 @@ def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> di
                 row, col = find_stock_position(grid, current_symbol)
                 neighbors = get_plus_neighbors(grid, row, col)
 
+                # Iterate through the neighbors
                 for neighbor_row, neighbor_col in neighbors:
                     neighbor_stock_symbol = grid.iat[neighbor_row, neighbor_col]
+
+                    # Skip the input stock_symbol when processing neighbors
+                    if neighbor_stock_symbol == stock_symbol:
+                        continue
 
                     # Load model and scaler for the current symbol and neighbor
                     model, scaler = load_model_and_scaler(f"model_A_{current_symbol}-{neighbor_stock_symbol}")
@@ -79,20 +88,26 @@ def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> di
                     # Predict the value for the current neighbor
                     prediction = model.predict(scaler, current_input_seq)
 
-                    # If this neighbor has already been predicted by another neighbor, calculate the average
-                    if neighbor_stock_symbol in predictions and prev_neighbor_symbol != neighbor_stock_symbol:
+                    # If this neighbor has already been predicted by another neighbor in the same iteration,
+                    # calculate the average
+                    if neighbor_stock_symbol in updated:
                         predictions[neighbor_stock_symbol] = (predictions[neighbor_stock_symbol] + prediction) / 2
                     else:
                         predictions[neighbor_stock_symbol] = prediction
+                        updated.add(neighbor_stock_symbol)
 
-                    # Prepare input sequence for the next neighbor
-                    next_input_seq = get_trailing_stock_data(neighbor_stock_symbol, prediction)
-
-                    # Add the neighbor to the queue to process its neighbors
-                    queue.append((neighbor_stock_symbol, next_input_seq, current_symbol))
+                    # If the neighbor has not been visited yet, add it to the queue
+                    if neighbor_stock_symbol not in visited:
+                        next_input_seq = get_trailing_stock_data(neighbor_stock_symbol, prediction)
+                        queue.append((neighbor_stock_symbol, next_input_seq, current_symbol))
 
                 # Update the progress bar
                 pbar.update(1)
+
+            # If the queue is empty, the current iteration is complete
+            if not queue:
+                # Reset the updated set for the next iteration
+                updated.clear()
 
     return predictions
 
@@ -118,8 +133,8 @@ def plot_predictions(grid: pd.DataFrame, predictions: dict[str, float]):
 
 if __name__ == "__main__":
     # Input data
-    ticker = "LVS"
-    change = 10
+    ticker = "AAPL"
+    change = 2
 
     # Get the input sequence
     input_seq = get_trailing_stock_data(ticker, change)
