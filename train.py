@@ -52,6 +52,13 @@ def create_models_for_pair(
         Tuple: Tuple containing the trained models and the scaler used to scale the data.
     """
 
+    # Find the first row where both stocks have non-zero values
+    first_nonzero_row = max(np.nonzero(stock_A.values)[0][0], np.nonzero(stock_B.values)[0][0])
+
+    # Trim the data to start from the first non-zero row
+    stock_A = stock_A[first_nonzero_row:]
+    stock_B = stock_B[first_nonzero_row:]
+
     # Prepare the input and target data
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(
