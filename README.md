@@ -3,6 +3,11 @@
 > This won't make you the next [Jim Simons](https://en.wikipedia.org/wiki/Jim_Simons_(mathematician))
 > but it's a fun way to learn about the stock market and cellular automata.
 
+**The goal of this project is not to create a perfect stock market simulator or a complex cellular automata model.**
+It is to explore the idea of using cellular automata and neural networks together to learn about the intersection
+of these two fields. The predictions made by the neural networks are not accurate and should not be used for
+investment decisions.
+
 ## What's special?
 
 **Cellular Automata meets Neural Networks**
@@ -114,20 +119,43 @@ model_ORCL, scaler_ORCL = load_model_and_scaler("model_B_AAPL-ORCL")
 Then, we can use the `predict` method to make predictions for a given input sequence.
 The input sequence should be a `numpy` array of shape `(5, 1)` because the models were trained on 5 day sequences.
 
+The inputs must be a percentage change from the previous day's closing price.
+The percentage must be represented as a decimal and not a percentage.
+Example: 1.23% as 1.23 not 0.0123.
+
 ```python
 import numpy as np
 
 # Example input sequences for AAPL and ORCL
-input_seq_AAPL = np.array([[0.02], [-0.01], [0.03], [0.01], [-0.02]])
-input_seq_ORCL = np.array([[0.01], [-0.02], [0.03], [0.02], [-0.01]])
+input_seq_AAPL = np.array([[2.1234], [-1.4567], [3.2456], [1.2345], [-2.0987]])
+input_seq_ORCL = np.array([[1.3456], [-2.3456], [3.1234], [2.4567], [-1.2345]])
 
-# Make predictions
 prediction_AAPL = model_AAPL.predict(scaler_AAPL, input_seq_AAPL)
 prediction_ORCL = model_ORCL.predict(scaler_ORCL, input_seq_ORCL)
 
 print(f"AAPL Prediction: {prediction_AAPL:.4f}")
 print(f"ORCL Prediction: {prediction_ORCL:.4f}")
-
-AAPL Prediction: 0.2618
-ORCL Prediction: -0.0041
 ```
+
+```text
+AAPL Prediction: 0.2831
+ORCL Prediction: 0.0279
+```
+
+#### Using real previous day's data
+
+Assuming the latest data has been downloaded,
+we can use the `get_trailing_stock_data` from `simulator.py` to get the previous day's data.
+
+```python
+from simulator import get_trailing_stock_data
+
+# Get the previous day's data for AAPL and ORCL
+input_seq_AAPL = get_trailing_stock_data("AAPL", -3.5625)
+input_seq_ORCL = get_trailing_stock_data("ORCL", -2.7492)
+# This will use the previous 4 days' data prefixed with the input value (second argument)
+```
+
+---
+
+Punit Arani
