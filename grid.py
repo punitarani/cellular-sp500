@@ -99,6 +99,30 @@ def place_cluster(grid, sorted_cluster_df, cluster):
         grid[new_pos[0]][new_pos[1]] = (stock, cluster)
 
 
+def evaluate_placement(grid, sorted_cluster_df):
+    """Evaluate the placement of clusters by calculating the average distance between the stocks in the same cluster."""
+
+    total_distance = 0
+    total_stocks = 0
+
+    for cluster in sorted_cluster_df['cluster'].unique():
+        cluster_stocks = sorted_cluster_df[sorted_cluster_df['cluster'] == cluster]
+        cluster_positions = [(i, j) for i in range(len(grid)) for j in range(len(grid[0])) if
+                             grid[i][j] is not None and grid[i][j][1] == cluster]
+
+        distance_sum = 0
+        stocks_count = len(cluster_positions)
+
+        for stock1_pos, stock2_pos in itertools.combinations(cluster_positions, 2):
+            distance_sum += abs(stock1_pos[0] - stock2_pos[0]) + abs(stock1_pos[1] - stock2_pos[1])
+
+        average_distance = distance_sum / (stocks_count * (stocks_count - 1) // 2)
+        total_distance += distance_sum
+        total_stocks += stocks_count
+
+    return total_distance / (total_stocks * (total_stocks - 1) // 2)
+
+
 if __name__ == "__main__":
     # Load the data
     daily_change_df = pd.read_csv("sp500_daily_change.csv", index_col=0)
@@ -190,6 +214,10 @@ if __name__ == "__main__":
     for cluster in sorted_cluster_df['cluster'].unique():
         place_cluster(grid, sorted_cluster_df, cluster)
     print("Placed stocks in a grid")
+
+    # Evaluate the placement
+    score = evaluate_placement(grid, sorted_cluster_df)
+    print(f"Placement evaluation score: {score}")
 
     # Convert the grid to a DataFrame and save it to a CSV file
     grid_df = pd.DataFrame(grid)
