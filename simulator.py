@@ -1,12 +1,13 @@
 """Cellular Automata Simulator"""
 
 import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import colors
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from tqdm import tqdm
 
 from data import load_daily_change_df
@@ -15,6 +16,12 @@ from train import load_model_and_scaler
 
 grid = load_grid()
 dcdf = load_daily_change_df()
+
+# Set FFMPEG path
+plt.rcParams['animation.ffmpeg_path'] = os.path.join(
+    os.environ.get("LOCALAPPDATA"),
+    "Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-6.0-full_build/bin/ffmpeg.exe"
+)
 
 
 def get_trailing_stock_data(stock: str, data: float, n: int = 4) -> np.ndarray:
@@ -116,12 +123,12 @@ def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> li
     return simulation_output
 
 
-def save_animation_with_progress_bar(animation, filename, fps, writer, total_frames):
+def save_animation_with_progress_bar(animation, filename, writer, total_frames):
     with tqdm(total=total_frames, desc=f"Saving animation {filename}") as pbar:
         def progress_callback(current_frame, total_frames):
             pbar.update(1)
 
-        animation.save(filename, fps=fps, writer=writer, progress_callback=progress_callback)
+        animation.save(filename, writer=writer, progress_callback=progress_callback)
 
 
 def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]]):
@@ -148,15 +155,16 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]]):
 
     # Calculate the interval and fps so animation is ~10s long
     num_frames = len(simulations)
-    interval = 10000 // num_frames
-    fps = (1000 // interval) * 10
+    fps = num_frames // 10
 
     # Create the animation
-    ani = FuncAnimation(fig, update, frames=num_frames, interval=interval, repeat=False)
+    ani = FuncAnimation(fig, update, frames=num_frames, repeat=False)
 
     # Save the animation as a video file
-    save_animation_with_progress_bar(ani, 'simulation.gif', fps=fps, writer='pillow', total_frames=num_frames)
-    print("Animation saved to simulation.gif")
+    filename = "simulation.mp4"
+    ffwriter = FFMpegWriter(fps=fps)
+    save_animation_with_progress_bar(ani, filename, ffwriter, num_frames)
+    print(f"Animation saved to {filename}")
 
     plt.show()
 
@@ -171,9 +179,12 @@ if __name__ == "__main__":
 
     # Simulate all the cells in the grid
     simulations = simulate(grid, ticker, input_seq)
+    # Convert float32 to float64 for json serialization
+    simulations = [{k: float(v) for k, v in sim.items()} for sim in simulations]
     # Save the simulations to a file
     with open("simulations.json", "w") as f:
         json.dump(simulations, f)
+    print("Simulations saved to simulations.json")
 
     # Plot the animation of the simulations
     plot_simulation(grid, simulations)
