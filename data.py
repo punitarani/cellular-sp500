@@ -218,6 +218,17 @@ def generate_daily_change_df() -> pd.DataFrame:
     return daily_change_df
 
 
+def load_daily_change_df() -> pd.DataFrame:
+    """Load the daily change DataFrame from the daily_change.parquet file"""
+    file_path = "sp500_daily_change.csv"
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError("No daily change file found")
+
+    daily_change_df = pd.read_csv(file_path, index_col=0, parse_dates=True)
+    return daily_change_df
+
+
 if __name__ == "__main__":
     # Get the list of S&P 500 tickers
     print("S&P500 Companies: ", get_sp500_tickers())
