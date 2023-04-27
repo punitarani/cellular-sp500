@@ -1,7 +1,6 @@
 """Generate the grid"""
 
 import json
-import random
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -30,66 +29,6 @@ def get_neighbors(grid, row, col):
     return neighbors
 
 
-def find_nearest_empty_cell(grid):
-    """
-    Find the nearest empty cell in a clockwise spiral pattern starting from the center.
-    """
-    grid_size_x, grid_size_y = len(grid), len(grid[0])
-    x, y = grid_size_x // 2, grid_size_y // 2
-    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    direction_index = 0
-    steps_same_direction = 1
-    steps_left_same_direction = 1
-
-    while True:
-        if 0 <= x < grid_size_x and 0 <= y < grid_size_y:
-            if grid[x][y] is None:
-                return x, y
-
-        x, y = x + directions[direction_index][0], y + directions[direction_index][1]
-        steps_left_same_direction -= 1
-
-        if steps_left_same_direction == 0:
-            direction_index = (direction_index + 1) % 4
-            if direction_index % 2 == 0:
-                steps_same_direction += 1
-            steps_left_same_direction = steps_same_direction
-
-
-def place_stock_near_center(grid, stock, symbol_to_cluster):
-    """
-    Place the stock in an empty cell close to the center.
-    """
-    grid_size_x, grid_size_y = len(grid), len(grid[0])
-    center_x, center_y = grid_size_x // 2, grid_size_y // 2
-
-    shuffled_positions = [(i, j) for i in range(grid_size_x) for j in range(grid_size_y)]
-    random.shuffle(shuffled_positions)
-
-    for x, y in shuffled_positions:
-        if grid[x][y] is None:
-            grid[x][y] = (stock, symbol_to_cluster[stock])
-            return x, y
-    return None, None
-
-
-def place_stock_around(grid, stock, symbol_to_cluster, starting_x, starting_y):
-    """
-    Place the stock in an empty cell around the starting position.
-    """
-    grid_size_x, grid_size_y = len(grid), len(grid[0])
-
-    shuffled_positions = [(i, j) for i in range(-1, 2) for j in range(-1, 2) if i != 0 or j != 0]
-    random.shuffle(shuffled_positions)
-
-    for dx, dy in shuffled_positions:
-        x, y = starting_x + dx, starting_y + dy
-        if 0 <= x < grid_size_x and 0 <= y < grid_size_y and grid[x][y] is None:
-            grid[x][y] = (stock, symbol_to_cluster[stock])
-            return x, y
-    return None, None
-
-
 def plot_grid(grid, sorted_cluster_df):
     """Plot the grid with the stocks colored by cluster."""
     fig, ax = plt.subplots(figsize=(15, 12))
@@ -112,6 +51,110 @@ def plot_grid(grid, sorted_cluster_df):
     ax.grid(True, which='major', color='black', linewidth=1)
 
     plt.show()
+
+
+def find_center(grid):
+    """Find suitable center for a cluster"""
+
+    grid_size = (len(grid), len(grid[0]))
+    grid_center = (grid_size[0] // 2, grid_size[1] // 2)
+
+    # Check if grid center is empty
+    if grid[grid_center[0]][grid_center[1]] is None:
+        return grid_center
+
+    # Check if mid point between grid center and corners is empty
+    diag1 = (grid_center[0] // 2, grid_center[1] // 2)
+    if grid[diag1[0]][diag1[1]] is None:
+        return diag1
+    diag2 = (grid_center[0] // 2, grid_center[1] + grid_center[1] // 2)
+    if grid[diag2[0]][diag2[1]] is None:
+        return diag2
+    diag3 = (grid_center[0] + grid_center[0] // 2, grid_center[1] // 2)
+    if grid[diag3[0]][diag3[1]] is None:
+        return diag3
+    diag4 = (grid_center[0] + grid_center[0] // 2, grid_center[1] + grid_center[1] // 2)
+    if grid[diag4[0]][diag4[1]] is None:
+        return diag4
+
+    # Check if the mid point between grid center and the middle of the sides is empty
+    side1 = (grid_center[0] // 2, grid_center[1])
+    if grid[side1[0]][side1[1]] is None:
+        return side1
+    side2 = (grid_center[0], grid_center[1] // 2)
+    if grid[side2[0]][side2[1]] is None:
+        return side2
+    side3 = (grid_center[0], grid_center[1] + grid_center[1] // 2)
+    if grid[side3[0]][side3[1]] is None:
+        return side3
+    side4 = (grid_center[0] + grid_center[0] // 2, grid_center[1])
+    if grid[side4[0]][side4[1]] is None:
+        return side4
+
+    # Expand outward in a spiral pattern from the grid center
+    radius = 1
+    while True:
+        for i in range(-radius, radius + 1):
+            for j in range(-radius, radius + 1):
+                if i == -radius or i == radius or j == -radius or j == radius:
+                    new_row, new_col = grid_center[0] + i, grid_center[1] + j
+                    if 0 <= new_row < grid_size[0] and 0 <= new_col < grid_size[1]:
+                        if grid[new_row][new_col] is None:
+                            return new_row, new_col
+        radius += 1
+
+
+def get_neighbors_with_radius(center, radius, grid_size):
+    """Get the neighbors of a cell at a given radius."""
+    neighbors = []
+
+    # Traverse top and bottom edges
+    for col_offset in range(-radius, radius + 1):
+        top_neighbor = (center[0] - radius, center[1] + col_offset)
+        bottom_neighbor = (center[0] + radius, center[1] + col_offset)
+
+        if 0 <= top_neighbor[0] < grid_size[0] and 0 <= top_neighbor[1] < grid_size[1]:
+            neighbors.append(top_neighbor)
+        if 0 <= bottom_neighbor[0] < grid_size[0] and 0 <= bottom_neighbor[1] < grid_size[1]:
+            neighbors.append(bottom_neighbor)
+
+    # Traverse left and right edges (excluding corners)
+    for row_offset in range(-radius + 1, radius):
+        left_neighbor = (center[0] + row_offset, center[1] - radius)
+        right_neighbor = (center[0] + row_offset, center[1] + radius)
+
+        if 0 <= left_neighbor[0] < grid_size[0] and 0 <= left_neighbor[1] < grid_size[1]:
+            neighbors.append(left_neighbor)
+        if 0 <= right_neighbor[0] < grid_size[0] and 0 <= right_neighbor[1] < grid_size[1]:
+            neighbors.append(right_neighbor)
+
+    return neighbors
+
+
+def place_cluster(grid, sorted_cluster_df, cluster):
+    """Place stocks in the 20x25 grid around the first stock of each cluster."""
+    cluster_stocks = sorted_cluster_df[sorted_cluster_df['cluster'] == cluster]
+
+    # Find a suitable center for the cluster
+    center = find_center(grid)
+
+    # Place the first stock in the cluster at the center
+    grid[center[0]][center[1]] = (cluster_stocks.iloc[0]['symbol'], cluster)
+
+    # Place the remaining stocks in the cluster
+    for i in range(1, len(cluster_stocks)):
+        stock, new_pos = cluster_stocks.iloc[i]['symbol'], None
+        radius = 1
+
+        while new_pos is None:
+            for neighbor in get_neighbors_with_radius(center, radius, (len(grid), len(grid[0]))):
+                new_row, new_col = neighbor
+                if grid[new_row][new_col] is None:
+                    new_pos = new_row, new_col
+                    break
+            radius += 1
+
+        grid[new_pos[0]][new_pos[1]] = (stock, cluster)
 
 
 if __name__ == "__main__":
@@ -202,33 +245,9 @@ if __name__ == "__main__":
     grid = [[None for _ in range(25)] for _ in range(20)]
     symbol_to_cluster = dict(zip(sorted_cluster_df["symbol"], sorted_cluster_df["cluster"]))
 
-    # Place stocks in the 20x25 grid around the first stock of each cluster
-    prev_cluster = None
-    starting_x, starting_y = len(grid) // 2, len(grid[0]) // 2
-    radius = 1
-    angle_increment = 2 * np.pi / (len(sorted_cluster_df[sorted_cluster_df["cluster"] == 1]))
-
-    for idx, row in sorted_cluster_df.iterrows():
-        if prev_cluster != row["cluster"]:
-            if row["cluster"] == 1:
-                angle = 0
-                x, y = starting_x + int(radius * np.cos(angle)), starting_y + int(radius * np.sin(angle))
-                grid[x][y] = (row["symbol"], symbol_to_cluster[row["symbol"]])
-                angle += angle_increment
-            else:
-                starting_x, starting_y = place_stock_near_center(grid, row["symbol"], symbol_to_cluster)
-            prev_cluster = row["cluster"]
-        else:
-            if row["cluster"] == 1:
-                x, y = starting_x + int(radius * np.cos(angle)), starting_y + int(radius * np.sin(angle))
-                grid[x][y] = (row["symbol"], symbol_to_cluster[row["symbol"]])
-                angle += angle_increment
-            else:
-                starting_x, starting_y = place_stock_around(grid, row["symbol"], symbol_to_cluster, starting_x,
-                                                            starting_y)
-                if starting_x is None:
-                    starting_x, starting_y = place_stock_near_center(grid, row["symbol"], symbol_to_cluster)
-
+    # Cluster around the center
+    for cluster in sorted_cluster_df['cluster'].unique():
+        place_cluster(grid, sorted_cluster_df, cluster)
     print("Placed stocks in a grid")
 
     # Convert the grid to a DataFrame and save it to a CSV file
