@@ -131,11 +131,21 @@ def save_animation_with_progress_bar(animation, filename, writer, total_frames):
         animation.save(filename, writer=writer, progress_callback=progress_callback)
 
 
-def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]]):
+def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], filename: str = "simulation"):
     fig, ax = plt.subplots()
 
     # Create a colormap with a variant of green for positive values and a variant of red for negative values
     cmap = colors.LinearSegmentedColormap.from_list("stock_changes", ["red", "white", "green"])
+
+    # Multiply the grid by a scaling factor, so the min and max simulation values are 100 and -100 respectively
+    # Find the min and max values of the simulation
+    min_value = min([min(simulation.values()) for simulation in simulations])
+    max_value = max([max(simulation.values()) for simulation in simulations])
+    # Find the scaling factor
+    scaling_factor = 2 / max(abs(min_value), abs(max_value))
+    # Multiply each simulation by the scaling factor
+    simulations = [{symbol: value * scaling_factor for symbol, value in simulation.items()} for simulation in simulations]
+
 
     # Prepare a grid to store the changed percentage values
     percentage_grid = np.zeros_like(grid, dtype=float)
@@ -161,7 +171,7 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]]):
     ani = FuncAnimation(fig, update, frames=num_frames, repeat=False)
 
     # Save the animation as a video file
-    filename = "simulation.mp4"
+    filename += ".mp4"
     ffwriter = FFMpegWriter(fps=fps)
     save_animation_with_progress_bar(ani, filename, ffwriter, num_frames)
     print(f"Animation saved to {filename}")
@@ -171,8 +181,10 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]]):
 
 if __name__ == "__main__":
     # Input data
-    ticker = "AAPL"
-    change = 0.5825
+    ticker = "JPM"
+    change = -0.381
+
+    filename = f"simulations/simulation_{ticker}"
 
     # Get the input sequence
     input_seq = get_trailing_stock_data(ticker, change)
@@ -182,9 +194,9 @@ if __name__ == "__main__":
     # Convert float32 to float64 for json serialization
     simulations = [{k: float(v) for k, v in sim.items()} for sim in simulations]
     # Save the simulations to a file
-    with open("simulations.json", "w") as f:
+    with open(f"{filename}.json", "w") as f:
         json.dump(simulations, f)
-    print("Simulations saved to simulations.json")
+    print(f"Simulations saved to {filename}.json")
 
     # Plot the animation of the simulations
-    plot_simulation(grid, simulations)
+    plot_simulation(grid, simulations, filename=filename)
