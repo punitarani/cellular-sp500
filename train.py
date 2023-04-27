@@ -37,7 +37,7 @@ def create_sequences(data: np.ndarray, seq_length: int) -> np.ndarray:
 
 
 def create_models_for_pair(
-        stock_A: pd.Series, stock_B: pd.Series, seq_length: int = 1, epochs: int = 100
+        stock_A: pd.Series, stock_B: pd.Series, seq_length: int = 5, epochs: int = 100
 ) -> tuple[tuple[LSTMModel, MinMaxScaler], tuple[LSTMModel, MinMaxScaler]]:
     """
     Create LSTM models for a pair of stocks.
