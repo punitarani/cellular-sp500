@@ -1,10 +1,10 @@
 """LSTM Model for Grid Weights"""
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from sklearn.preprocessing import MinMaxScaler
 
 
 class LSTMModel(nn.Module):
@@ -48,13 +48,31 @@ class LSTMModel(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
+    def predict(self, scaler: MinMaxScaler, input_seq: np.ndarray) -> float:
+        """
+        Make a prediction using the trained LSTM model.
+
+        Args:
+            scaler (MinMaxScaler): The scaler used to scale the input data.
+            input_seq (np.ndarray): Input sequence of shape (seq_len, 1).
+
+        Returns:
+            float: The predicted percentage change for the next day.
+        """
+        input_seq = scaler.transform(input_seq)
+        input_seq = input_seq.reshape(1, -1, 1)
+        input_tensor = torch.tensor(input_seq, dtype=torch.float32)
+        output = self.forward(input_tensor)
+        output = output.detach().numpy().reshape(-1, 1)
+        return scaler.inverse_transform(output)[0][0]
+
 
 def train_lstm_model(
-    model: LSTMModel,
-    X: np.ndarray,
-    y: np.ndarray,
-    epochs: int = 100,
-    learning_rate: float = 0.01,
+        model: LSTMModel,
+        X: np.ndarray,
+        y: np.ndarray,
+        epochs: int = 100,
+        learning_rate: float = 0.01,
 ) -> None:
     """
     Train the LSTM model.
