@@ -1,13 +1,12 @@
 """Generate the weights for the grid."""
 
-import multiprocessing
 import pickle
 
 import numpy as np
 import pandas as pd
 import torch
 from sklearn.preprocessing import MinMaxScaler
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 from grid import get_neighbors, load_grid
 from lstm import LSTMModel, train_lstm_model
@@ -31,14 +30,14 @@ def create_sequences(data: np.ndarray, seq_length: int) -> np.ndarray:
     y = []
 
     for i in range(len(data) - seq_length):
-        X.append(data[i : (i + seq_length)])
+        X.append(data[i: (i + seq_length)])
         y.append(data[i + seq_length])
 
     return np.array(X), np.array(y)
 
 
 def create_models_for_pair(
-    stock_A: pd.Series, stock_B: pd.Series, seq_length: int = 5, epochs: int = 100
+        stock_A: pd.Series, stock_B: pd.Series, seq_length: int = 5, epochs: int = 100
 ) -> tuple[tuple[LSTMModel, MinMaxScaler], tuple[LSTMModel, MinMaxScaler]]:
     """
     Create LSTM models for a pair of stocks.
@@ -59,7 +58,7 @@ def create_models_for_pair(
         np.concatenate([stock_A.values.reshape(-1, 1), stock_B.values.reshape(-1, 1)])
     )
     scaled_stock_A = scaled_data[: len(stock_A)]
-    scaled_stock_B = scaled_data[len(stock_A) :]
+    scaled_stock_B = scaled_data[len(stock_A):]
 
     X_A, y_A = create_sequences(scaled_stock_A, seq_length)
     X_B, y_B = create_sequences(scaled_stock_B, seq_length)
@@ -84,7 +83,7 @@ def create_models_for_pair(
 
 
 def save_model_and_scaler(
-    model: LSTMModel, scaler: MinMaxScaler, filename: str
+        model: LSTMModel, scaler: MinMaxScaler, filename: str
 ) -> None:
     """
     Save the model and scaler to disk.
@@ -170,13 +169,11 @@ if __name__ == "__main__":
                     (stock, neighbor_stock, stock_symbol, neighbor_stock_symbol)
                 )
 
-    # Use multiprocessing to create and train models
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        trained_models = pool.starmap(
-            create_and_train_models,
-            tqdm(stock_pairs, desc="Training Models", ncols=100),
-            chunksize=1,
-        )
+    # Train models sequentially without multiprocessing
+    trained_models = [
+        create_and_train_models(*stock_pair)
+        for stock_pair in tqdm(stock_pairs, desc="Training Models", ncols=100)
+    ]
 
     # Update models_dict with trained models
     for model_key, models in trained_models:
