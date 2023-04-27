@@ -86,6 +86,11 @@ python train.py
 This will train the LSTM models for each neighboring stock pair and save the weights to `weights/<TICKER>.pth`,
 the model to `models/<TICKER>.pt` and scalers to `scalers/<TICKER>/.pkl`
 
+**The models are trained on sequences of 5 consecutive days**.
+This was chosen because it is inefficient and impractical to train on shorter sequences because it is hard to make
+predictions on a single day's data. Similarly, it is inefficient to train on longer sequences because the number of
+possible sequences increases exponentially and the prediction complexity increases with the sequence length.
+
 > This is a very computationally expensive process.
 > It took over 7 hours on a 4 core machine with 16 GB RAM laptop and over 3 hours on a 16 core server instance.
 > Currently, the models are trained on CPU only as there are issues training PyTorch LSTM models on GPU.
@@ -123,8 +128,6 @@ prediction_ORCL = model_ORCL.predict(scaler_ORCL, input_seq_ORCL)
 print(f"AAPL Prediction: {prediction_AAPL:.4f}")
 print(f"ORCL Prediction: {prediction_ORCL:.4f}")
 
-AAPL
-Prediction: 0.2618
-ORCL
-Prediction: -0.0041
+AAPL Prediction: 0.2618
+ORCL Prediction: -0.0041
 ```
