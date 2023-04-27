@@ -229,6 +229,33 @@ def load_daily_change_df() -> pd.DataFrame:
     return daily_change_df
 
 
+def find_first_nonzero_row(df, threshold):
+    """
+    Find the first row in a dataframe where at least `threshold` percent of the values are non-zero.
+
+    Parameters:
+        df (pandas.DataFrame): The input dataframe.
+        threshold (float): The minimum percentage (0-1) of non-zero values required.
+
+    Returns:
+        int: The index of the first row where at least `threshold` percent of the values are non-zero.
+             If no such row is found, returns -1.
+    """
+    # Count the number of non-zero values in each row
+    counts = (df != 0).sum(axis=1)
+
+    # Calculate the percentage of non-zero values in each row
+    percentages = counts / len(df.columns)
+
+    # Find the index of the first row where the percentage of non-zero values is greater than or equal to the threshold
+    filtered_percentages = percentages[percentages >= threshold]
+    if len(filtered_percentages) > 0:
+        first_row = filtered_percentages.index[0]
+        return first_row
+    else:
+        return -1
+
+
 if __name__ == "__main__":
     # Get the list of S&P 500 tickers
     print("S&P500 Companies: ", get_sp500_tickers())
