@@ -1,7 +1,9 @@
 """Cellular Automata Simulator"""
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib import colors
 from tqdm import tqdm
 
 from data import load_daily_change_df
@@ -95,15 +97,36 @@ def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> di
     return predictions
 
 
+def plot_predictions(grid: pd.DataFrame, predictions: dict[str, float]):
+    # Prepare a grid to store the changed percentage values
+    percentage_grid = np.zeros_like(grid, dtype=float)
+
+    # Fill the grid with the corresponding percentage changes
+    for symbol, change in predictions.items():
+        row, col = find_stock_position(grid, symbol)
+        percentage_grid[row, col] = change
+
+    # Create a colormap with a variant of green for positive values and a variant of red for negative values
+    cmap = colors.LinearSegmentedColormap.from_list("stock_changes", ["red", "white", "green"])
+
+    # Plot the grid with the percentage changes
+    plt.imshow(percentage_grid, cmap=cmap, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.title("Stock Change Percentages")
+    plt.show()
+
+
 if __name__ == "__main__":
     # Input data
-    ticker = "AAPL"
-    change = 0.0102
+    ticker = "LVS"
+    change = 10
 
     # Get the input sequence
     input_seq = get_trailing_stock_data(ticker, change)
 
     # Simulate all the cells in the grid
     predictions = simulate(grid, ticker, input_seq)
-
     print(predictions)
+
+    # Plot the predictions
+    plot_predictions(grid, predictions)
