@@ -51,6 +51,44 @@ def predict_neighbors(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarr
     return predictions
 
 
+def simulate(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarray) -> dict[str, float]:
+    # Initialize predictions dictionary
+    predictions = {}
+    # Initialize queue for BFS
+    queue = [(stock_symbol, input_seq, None)]
+    visited = set()
+
+    while queue:
+        current_symbol, current_input_seq, prev_neighbor_symbol = queue.pop(0)
+        if current_symbol not in visited:
+            visited.add(current_symbol)
+            row, col = find_stock_position(grid, current_symbol)
+            neighbors = get_plus_neighbors(grid, row, col)
+
+            for neighbor_row, neighbor_col in neighbors:
+                neighbor_stock_symbol = grid.iat[neighbor_row, neighbor_col]
+
+                # Load model and scaler for the current symbol and neighbor
+                model, scaler = load_model_and_scaler(f"model_A_{current_symbol}-{neighbor_stock_symbol}")
+
+                # Predict the value for the current neighbor
+                prediction = model.predict(scaler, current_input_seq)
+
+                # If this neighbor has already been predicted by another neighbor, calculate the average
+                if neighbor_stock_symbol in predictions and prev_neighbor_symbol != neighbor_stock_symbol:
+                    predictions[neighbor_stock_symbol] = (predictions[neighbor_stock_symbol] + prediction) / 2
+                else:
+                    predictions[neighbor_stock_symbol] = prediction
+
+                # Prepare input sequence for the next neighbor
+                next_input_seq = get_trailing_stock_data(neighbor_stock_symbol, prediction)
+
+                # Add the neighbor to the queue to process its neighbors
+                queue.append((neighbor_stock_symbol, next_input_seq, current_symbol))
+
+    return predictions
+
+
 if __name__ == "__main__":
     # Input data
     ticker = "AAPL"
@@ -59,7 +97,7 @@ if __name__ == "__main__":
     # Get the input sequence
     input_seq = get_trailing_stock_data(ticker, change)
 
-    # Predict the neighbors of "AAPL"
-    predictions = predict_neighbors(grid, "AAPL", input_seq)
+    # Simulate all the cells in the grid
+    predictions = simulate(grid, ticker, input_seq)
 
     print(predictions)
