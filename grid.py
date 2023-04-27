@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     # Convert the grid to a DataFrame and save it to a CSV file
     grid_df = pd.DataFrame(best_grid)
-    grid_df.to_csv("sp500_best_grid.csv", index=False)
-    print("Saved grid to sp500_best_grid.csv")
+    grid_df.to_csv("sp500_grid.csv", index=False)
+    print("Saved grid to sp500_grid.csv")
 
     plot_grid(best_grid, sorted_cluster_df)
