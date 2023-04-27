@@ -8,6 +8,8 @@ It is to explore the idea of using cellular automata and neural networks togethe
 of these two fields. The predictions made by the neural networks are not accurate and should not be used for
 investment decisions.
 
+**Read the Notebook for a detailed explanation of the project: [SP500-Cellular-Automata.ipynb](https://github.com/punitarani/cellular-sp500/blob/master/SP500-Cellular-Automata.ipynb)**
+
 ## What's special?
 
 **Cellular Automata meets Neural Networks**
@@ -80,9 +82,6 @@ The script performs the following:
 Here is the final grid placement:
 
 ![sp500_grid.png](sp500_grid.png)
-
-_Read more about the background on the grid placement strategy and
-demo: [sp500_analysis.ipynb](https://github.com/punitarani/cellular-sp500/blob/master/sp500_analysis.ipynb)._
 
 ### Training the Neural Network
 
