@@ -1,5 +1,6 @@
 """Generate the grid"""
 
+import itertools
 import json
 
 import matplotlib.pyplot as plt
@@ -12,32 +13,24 @@ from scipy.spatial.distance import squareform
 
 
 def load_grid():
-    """Load the grid from the CSV file."""
     return pd.read_csv("sp500_grid.csv")
 
 
 def get_neighbors(grid, row, col):
-    """Get the neighbors of a cell in the grid."""
-    neighbors = []
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            if i == 0 and j == 0:
-                continue
-            new_row, new_col = row + i, col + j
-            if 0 <= new_row < grid.shape[0] and 0 <= new_col < grid.shape[1]:
-                neighbors.append((new_row, new_col))
-    return neighbors
+    neighbor_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+    grid_shape = grid.shape
+    return [(row + i, col + j) for i, j in neighbor_offsets if
+            0 <= row + i < grid_shape[0] and 0 <= col + j < grid_shape[1]]
 
 
 def plot_grid(grid, sorted_cluster_df):
-    """Plot the grid with the stocks colored by cluster."""
     fig, ax = plt.subplots(figsize=(15, 12))
     colors = plt.cm.get_cmap("tab20", len(sorted_cluster_df["cluster"].unique()))
 
-    for i in range(len(grid)):
-        for j in range(len(grid[0])):
-            if grid[i][j] is not None:
-                stock, cluster = grid[i][j]
+    for i, row in enumerate(grid):
+        for j, cell in enumerate(row):
+            if cell is not None:
+                stock, cluster = cell
                 color = colors(cluster - 1)
                 rect = Rectangle((j, i), 1, 1, facecolor=color, edgecolor='black', linewidth=1)
                 ax.add_patch(rect)
@@ -54,81 +47,29 @@ def plot_grid(grid, sorted_cluster_df):
 
 
 def find_center(grid):
-    """Find suitable center for a cluster"""
-
     grid_size = (len(grid), len(grid[0]))
     grid_center = (grid_size[0] // 2, grid_size[1] // 2)
 
-    # Check if grid center is empty
-    if grid[grid_center[0]][grid_center[1]] is None:
-        return grid_center
+    points_to_check = [(grid_center[0] + x * grid_center[0] // 2, grid_center[1] + y * grid_center[1] // 2) for x, y in
+                       [(0, 0), (1, 1), (-1, -1), (1, -1), (-1, 1), (0, 1), (1, 0), (0, -1), (-1, 0)]]
 
-    # Check if mid point between grid center and corners is empty
-    diag1 = (grid_center[0] // 2, grid_center[1] // 2)
-    if grid[diag1[0]][diag1[1]] is None:
-        return diag1
-    diag2 = (grid_center[0] // 2, grid_center[1] + grid_center[1] // 2)
-    if grid[diag2[0]][diag2[1]] is None:
-        return diag2
-    diag3 = (grid_center[0] + grid_center[0] // 2, grid_center[1] // 2)
-    if grid[diag3[0]][diag3[1]] is None:
-        return diag3
-    diag4 = (grid_center[0] + grid_center[0] // 2, grid_center[1] + grid_center[1] // 2)
-    if grid[diag4[0]][diag4[1]] is None:
-        return diag4
+    for point in points_to_check:
+        if grid[point[0]][point[1]] is None:
+            return point
 
-    # Check if the mid point between grid center and the middle of the sides is empty
-    side1 = (grid_center[0] // 2, grid_center[1])
-    if grid[side1[0]][side1[1]] is None:
-        return side1
-    side2 = (grid_center[0], grid_center[1] // 2)
-    if grid[side2[0]][side2[1]] is None:
-        return side2
-    side3 = (grid_center[0], grid_center[1] + grid_center[1] // 2)
-    if grid[side3[0]][side3[1]] is None:
-        return side3
-    side4 = (grid_center[0] + grid_center[0] // 2, grid_center[1])
-    if grid[side4[0]][side4[1]] is None:
-        return side4
-
-    # Expand outward in a spiral pattern from the grid center
     radius = 1
     while True:
-        for i in range(-radius, radius + 1):
-            for j in range(-radius, radius + 1):
-                if i == -radius or i == radius or j == -radius or j == radius:
-                    new_row, new_col = grid_center[0] + i, grid_center[1] + j
-                    if 0 <= new_row < grid_size[0] and 0 <= new_col < grid_size[1]:
-                        if grid[new_row][new_col] is None:
-                            return new_row, new_col
+        for neighbor in get_neighbors_with_radius(grid_center, radius, grid_size):
+            if grid[neighbor[0]][neighbor[1]] is None:
+                return neighbor
         radius += 1
 
 
 def get_neighbors_with_radius(center, radius, grid_size):
-    """Get the neighbors of a cell at a given radius."""
-    neighbors = []
-
-    # Traverse top and bottom edges
-    for col_offset in range(-radius, radius + 1):
-        top_neighbor = (center[0] - radius, center[1] + col_offset)
-        bottom_neighbor = (center[0] + radius, center[1] + col_offset)
-
-        if 0 <= top_neighbor[0] < grid_size[0] and 0 <= top_neighbor[1] < grid_size[1]:
-            neighbors.append(top_neighbor)
-        if 0 <= bottom_neighbor[0] < grid_size[0] and 0 <= bottom_neighbor[1] < grid_size[1]:
-            neighbors.append(bottom_neighbor)
-
-    # Traverse left and right edges (excluding corners)
-    for row_offset in range(-radius + 1, radius):
-        left_neighbor = (center[0] + row_offset, center[1] - radius)
-        right_neighbor = (center[0] + row_offset, center[1] + radius)
-
-        if 0 <= left_neighbor[0] < grid_size[0] and 0 <= left_neighbor[1] < grid_size[1]:
-            neighbors.append(left_neighbor)
-        if 0 <= right_neighbor[0] < grid_size[0] and 0 <= right_neighbor[1] < grid_size[1]:
-            neighbors.append(right_neighbor)
-
-    return neighbors
+    offsets = [(i, j) for i in range(-radius, radius + 1) for j in range(-radius, radius + 1) if
+               abs(i) == radius or abs(j) == radius]
+    return [(center[0] + i, center[1] + j) for i, j in offsets if
+            0 <= center[0] + i < grid_size[0] and 0 <= center[1] + j < grid_size[1]]
 
 
 def place_cluster(grid, sorted_cluster_df, cluster):
@@ -141,18 +82,19 @@ def place_cluster(grid, sorted_cluster_df, cluster):
     # Place the first stock in the cluster at the center
     grid[center[0]][center[1]] = (cluster_stocks.iloc[0]['symbol'], cluster)
 
-    # Place the remaining stocks in the cluster
-    for i in range(1, len(cluster_stocks)):
-        stock, new_pos = cluster_stocks.iloc[i]['symbol'], None
-        radius = 1
-
-        while new_pos is None:
+    # Function to generate positions in a spiral pattern
+    def spiral_positions(center):
+        for radius in itertools.count(start=1):
             for neighbor in get_neighbors_with_radius(center, radius, (len(grid), len(grid[0]))):
-                new_row, new_col = neighbor
-                if grid[new_row][new_col] is None:
-                    new_pos = new_row, new_col
-                    break
-            radius += 1
+                yield neighbor
+
+    # Place the remaining stocks in the cluster
+    spiral_gen = spiral_positions(center)
+    for i in range(1, len(cluster_stocks)):
+        stock = cluster_stocks.iloc[i]['symbol']
+
+        # Find the next empty position in the spiral pattern
+        new_pos = next(pos for pos in spiral_gen if grid[pos[0]][pos[1]] is None)
 
         grid[new_pos[0]][new_pos[1]] = (stock, cluster)
 
@@ -243,7 +185,6 @@ if __name__ == "__main__":
 
     # Place stocks in the 20x25 grid
     grid = [[None for _ in range(25)] for _ in range(20)]
-    symbol_to_cluster = dict(zip(sorted_cluster_df["symbol"], sorted_cluster_df["cluster"]))
 
     # Cluster around the center
     for cluster in sorted_cluster_df['cluster'].unique():
