@@ -2,6 +2,7 @@
 
 import itertools
 import json
+import random
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -10,6 +11,8 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
+
+from tqdm import tqdm
 
 
 def load_grid():
@@ -47,22 +50,14 @@ def plot_grid(grid, sorted_cluster_df):
 
 
 def find_center(grid):
-    grid_size = (len(grid), len(grid[0]))
-    grid_center = (grid_size[0] // 2, grid_size[1] // 2)
+    """Find a suitable center for placing a new cluster in the 20x25 grid."""
 
-    points_to_check = [(grid_center[0] + x * grid_center[0] // 2, grid_center[1] + y * grid_center[1] // 2) for x, y in
-                       [(0, 0), (1, 1), (-1, -1), (1, -1), (-1, 1), (0, 1), (1, 0), (0, -1), (-1, 0)]]
+    points_to_check = [(i, j) for i in range(len(grid)) for j in range(len(grid[0]))]
+    random.shuffle(points_to_check)
 
     for point in points_to_check:
         if grid[point[0]][point[1]] is None:
             return point
-
-    radius = 1
-    while True:
-        for neighbor in get_neighbors_with_radius(grid_center, radius, grid_size):
-            if grid[neighbor[0]][neighbor[1]] is None:
-                return neighbor
-        radius += 1
 
 
 def get_neighbors_with_radius(center, radius, grid_size):
@@ -100,27 +95,43 @@ def place_cluster(grid, sorted_cluster_df, cluster):
 
 
 def evaluate_placement(grid, sorted_cluster_df):
-    """Evaluate the placement of clusters by calculating the average distance between the stocks in the same cluster."""
+    grid_size = (len(grid), len(grid[0]))
+    grid_center = (grid_size[0] // 2, grid_size[1] // 2)
 
-    total_distance = 0
-    total_stocks = 0
+    market_cap_lookup = dict(zip(sorted_cluster_df["symbol"], sorted_cluster_df["market_cap"]))
+    max_market_cap = sorted_cluster_df["market_cap"].max()
 
-    for cluster in sorted_cluster_df['cluster'].unique():
-        cluster_stocks = sorted_cluster_df[sorted_cluster_df['cluster'] == cluster]
-        cluster_positions = [(i, j) for i in range(len(grid)) for j in range(len(grid[0])) if
-                             grid[i][j] is not None and grid[i][j][1] == cluster]
+    total_score = 0
+    for i in range(grid_size[0]):
+        for j in range(grid_size[1]):
+            if grid[i][j] is not None:
+                stock, cluster = grid[i][j]
+                market_cap = market_cap_lookup[stock]
+                market_cap_weight = market_cap / max_market_cap
+                distance_from_center = abs(grid_center[0] - i) + abs(grid_center[1] - j)
+                total_score += market_cap_weight * distance_from_center
 
-        distance_sum = 0
-        stocks_count = len(cluster_positions)
+    return total_score
 
-        for stock1_pos, stock2_pos in itertools.combinations(cluster_positions, 2):
-            distance_sum += abs(stock1_pos[0] - stock2_pos[0]) + abs(stock1_pos[1] - stock2_pos[1])
 
-        average_distance = distance_sum / (stocks_count * (stocks_count - 1) // 2)
-        total_distance += distance_sum
-        total_stocks += stocks_count
 
-    return total_distance / (total_stocks * (total_stocks - 1) // 2)
+def get_best_placement(sorted_cluster_df, iterations=100):
+    best_grid = None
+    best_score = float('inf')
+
+    for _ in tqdm(range(iterations), desc="Finding best placement"):
+        grid = [[None for _ in range(25)] for _ in range(20)]
+
+        for cluster in sorted_cluster_df['cluster'].unique():
+            place_cluster(grid, sorted_cluster_df, cluster)
+
+        score = evaluate_placement(grid, sorted_cluster_df)
+
+        if score < best_score:
+            best_score = score
+            best_grid = grid
+
+    return best_grid, best_score
 
 
 if __name__ == "__main__":
@@ -207,21 +218,13 @@ if __name__ == "__main__":
     # Convert 'grid_x' and 'grid_y' columns to integers using applymap()
     pos_df = pos_df.applymap(lambda x: int(x))
 
-    # Place stocks in the 20x25 grid
-    grid = [[None for _ in range(25)] for _ in range(20)]
-
-    # Cluster around the center
-    for cluster in sorted_cluster_df['cluster'].unique():
-        place_cluster(grid, sorted_cluster_df, cluster)
-    print("Placed stocks in a grid")
-
-    # Evaluate the placement
-    score = evaluate_placement(grid, sorted_cluster_df)
-    print(f"Placement evaluation score: {score}")
+    # Find the best placement
+    best_grid, best_score = get_best_placement(sorted_cluster_df, iterations=10000)
+    print(f"Best placement evaluation score: {best_score}")
 
     # Convert the grid to a DataFrame and save it to a CSV file
-    grid_df = pd.DataFrame(grid)
-    grid_df.to_csv("sp500_grid.csv", index=False)
-    print("Saved grid to sp500_grid.csv")
+    grid_df = pd.DataFrame(best_grid)
+    grid_df.to_csv("sp500_best_grid.csv", index=False)
+    print("Saved grid to sp500_best_grid.csv")
 
-    plot_grid(grid, sorted_cluster_df)
+    plot_grid(best_grid, sorted_cluster_df)
