@@ -59,6 +59,22 @@ python grid.py
 
 This saves the grid positions to `sp500_grid.csv`.
 
+The script performs the following:
+
+1. Load the historical data for all stocks
+2. Performs hierarchical clustering on the stocks based on their correlation
+3. Creates a force-directed graph to find the optimal grid positions for each stock
+4. Performs an evaluation of the grid positions by checking cluster tightness and concentrating larger market cap stocks
+   in the center of the grid
+5. Repeat steps 3 and 4 for 10000 iterations while evaluating the positions to find the best grid placement
+
+Here is the final grid placement:
+
+![sp500_grid.png](sp500_grid.png)
+
+_Read more about the background on the grid placement strategy and
+demo: [sp500_analysis.ipynb](https://github.com/punitarani/cellular-sp500/blob/master/sp500_analysis.ipynb)._
+
 ### Training the Neural Network
 
 To train the LSTM models for grid weights, run the following command:
@@ -107,6 +123,8 @@ prediction_ORCL = model_ORCL.predict(scaler_ORCL, input_seq_ORCL)
 print(f"AAPL Prediction: {prediction_AAPL:.4f}")
 print(f"ORCL Prediction: {prediction_ORCL:.4f}")
 
-AAPL Prediction: 0.2618
-ORCL Prediction: -0.0041
+AAPL
+Prediction: 0.2618
+ORCL
+Prediction: -0.0041
 ```
