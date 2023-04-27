@@ -3,10 +3,18 @@
 import numpy as np
 import pandas as pd
 
+from data import load_daily_change_df
 from grid import load_grid
 from train import load_model_and_scaler
 
 grid = load_grid()
+dcdf = load_daily_change_df()
+
+
+def get_trailing_stock_data(stock: str, data: float, n: int = 4) -> np.ndarray:
+    """Prefix the data with the last n days of daily change data."""
+    result = np.concatenate((dcdf[stock].iloc[-n:].values, [data]))
+    return result.reshape(-1, 1)
 
 
 def find_stock_position(grid: pd.DataFrame, stock_symbol: str) -> tuple[int, int]:
@@ -44,8 +52,12 @@ def predict_neighbors(grid: pd.DataFrame, stock_symbol: str, input_seq: np.ndarr
 
 
 if __name__ == "__main__":
-    # Example input sequence for a stock (5 days)
-    input_seq = np.array([[0.0204], [-0.0102], [0.0306], [0.0102], [-0.0204]])
+    # Input data
+    ticker = "AAPL"
+    change = 0.0102
+
+    # Get the input sequence
+    input_seq = get_trailing_stock_data(ticker, change)
 
     # Predict the neighbors of "AAPL"
     predictions = predict_neighbors(grid, "AAPL", input_seq)
