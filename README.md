@@ -16,6 +16,10 @@ investment decisions.
 - The grid weights (state transitions) are [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory) models trained
   on real historical data
 
+### Demo
+
+![simulation_AAPL.gif](https://github.com/punitarani/cellular-sp500/blob/master/simulations/simulation_AAPL.gif)
+
 ## Usage
 
 ### Requirements
