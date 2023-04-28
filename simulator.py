@@ -210,7 +210,7 @@ def plot_last_frame(grid: pd.DataFrame, simulations: list[dict[str, float]]):
     ax.imshow(percentage_grid, cmap=cmap, vmin=-1, vmax=1)
     ax.set_title(f"Iteration {len(simulations)}")
 
-    return fig, ax
+    plt.show()
 
 
 if __name__ == "__main__":
