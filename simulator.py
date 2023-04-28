@@ -168,16 +168,16 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], fil
     fps = num_frames // 10
 
     # Create the animation
-    ani = FuncAnimation(fig, update, frames=num_frames, repeat=False)
+    anim = FuncAnimation(fig, update, frames=num_frames, repeat=False)
 
     # Save the animation as a video file
     if save:
         filename += ".mp4"
         ffwriter = FFMpegWriter(fps=fps)
-        save_animation_with_progress_bar(ani, filename, ffwriter, num_frames)
+        save_animation_with_progress_bar(anim, filename, ffwriter, num_frames)
         print(f"Animation saved to {filename}")
 
-    plt.show()
+    return anim
 
 
 if __name__ == "__main__":
@@ -200,4 +200,5 @@ if __name__ == "__main__":
     print(f"Simulations saved to {filename}.json")
 
     # Plot the animation of the simulations
-    plot_simulation(grid, simulations, filename=filename, save=False)
+    anim = plot_simulation(grid, simulations, filename=filename, save=False)
+    plt.show()
