@@ -35,6 +35,26 @@ investment decisions.
 poetry install
 ```
 
+### Running the Simulator
+
+```bash
+python simulator.py --ticker <STR> --change <FLOAT>
+```
+
+You can also simply pass the arguments without `--ticker` and `--change` as long as they are passed in order.
+
+To run with default arguments (AAPL and 0.245)
+
+```bash
+python simulator.py
+```
+
+To run with custom arguments (MSFT and -0.147)
+
+```bash
+python simulator.py MSFT -0.147
+```
+
 ### Downloading Latest Data
 
 Update the `start_date` and `end_date` in `data.py` to the desired date range.
