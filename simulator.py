@@ -180,6 +180,39 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], fil
     return anim
 
 
+def plot_last_frame(grid: pd.DataFrame, simulations: list[dict[str, float]]):
+    fig, ax = plt.subplots()
+
+    # Create a colormap with a variant of green for positive values and a variant of red for negative values
+    cmap = colors.LinearSegmentedColormap.from_list("stock_changes", ["red", "white", "green"])
+
+    # Multiply the grid by a scaling factor, so the min and max simulation values are 100 and -100 respectively
+    # Find the min and max values of the simulation
+    min_value = min([min(simulation.values()) for simulation in simulations])
+    max_value = max([max(simulation.values()) for simulation in simulations])
+    # Find the scaling factor
+    scaling_factor = 2 / max(abs(min_value), abs(max_value))
+    # Multiply each simulation by the scaling factor
+    simulations = [{symbol: value * scaling_factor for symbol, value in simulation.items()} for simulation in simulations]
+
+    # Prepare a grid to store the changed percentage values
+    percentage_grid = np.zeros_like(grid, dtype=float)
+
+    # Get the last simulation
+    last_simulation = simulations[-1]
+
+    # Fill the grid with the corresponding percentage changes
+    for symbol, change in last_simulation.items():
+        row, col = find_stock_position(grid, symbol)
+        percentage_grid[row, col] = change
+
+    # Plot the grid with the percentage changes
+    ax.imshow(percentage_grid, cmap=cmap, vmin=-1, vmax=1)
+    ax.set_title(f"Iteration {len(simulations)}")
+
+    return fig, ax
+
+
 if __name__ == "__main__":
     # Input data
     ticker = "AAPL"
