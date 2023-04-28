@@ -1,5 +1,6 @@
 """Cellular Automata Simulator"""
 
+import argparse
 import json
 import os
 
@@ -215,8 +216,9 @@ def plot_last_frame(grid: pd.DataFrame, simulations: list[dict[str, float]]):
 
 if __name__ == "__main__":
     # Input data
-    ticker = "AAPL"
-    change = 0.245
+    parser = argparse.ArgumentParser(description="Process ticker and change arguments.")
+    parser.add_argument('--ticker', default="AAPL", help="Stock ticker symbol (default: AAPL)")
+    parser.add_argument('--change', type=float, default=0.245, help="Stock change value (default: 0.245)")
 
     filename = f"simulations/simulation_{ticker}"
 
