@@ -217,8 +217,18 @@ def plot_last_frame(grid: pd.DataFrame, simulations: list[dict[str, float]]):
 if __name__ == "__main__":
     # Input data
     parser = argparse.ArgumentParser(description="Process ticker and change arguments.")
-    parser.add_argument('--ticker', default="AAPL", help="Stock ticker symbol (default: AAPL)")
-    parser.add_argument('--change', type=float, default=0.245, help="Stock change value (default: 0.245)")
+
+    if len(sys.argv) == 3:
+        parser.add_argument('ticker', help="Stock ticker symbol (default: AAPL)")
+        parser.add_argument('change', type=float, help="Stock change value (default: 0.245)")
+    else:
+        parser.add_argument('--ticker', default="AAPL", help="Stock ticker symbol (default: AAPL)")
+        parser.add_argument('--change', type=float, default=0.245, help="Stock change value (default: 0.245)")
+
+    args = parser.parse_args()
+
+    ticker = args.ticker
+    change = args.change
 
     filename = f"simulations/simulation_{ticker}"
 
