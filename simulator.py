@@ -234,7 +234,10 @@ if __name__ == "__main__":
     filename = f"simulations/simulation_{ticker}"
 
     # Get the input sequence
-    input_seq = get_trailing_stock_data(ticker, change)
+    try:
+        input_seq = get_trailing_stock_data(ticker, change)
+    except KeyError:
+        raise ValueError(f"Cannot get data for {ticker}. Make sure it is in the S&P 500")
 
     # Simulate all the cells in the grid
     try:
