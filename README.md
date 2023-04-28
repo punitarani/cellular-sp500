@@ -145,10 +145,10 @@ AAPL Prediction: 0.2831
 ORCL Prediction: 0.0279
 ```
 
-#### Using real previous day's data
+#### Using real data
 
 Assuming the latest data has been downloaded,
-we can use the `get_trailing_stock_data` from `simulator.py` to get the previous day's data.
+we can use the `get_trailing_stock_data` from `simulator.py` to get the previous days' data.
 
 ```python
 from simulator import get_trailing_stock_data
@@ -156,7 +156,7 @@ from simulator import get_trailing_stock_data
 # Get the previous day's data for AAPL and ORCL
 input_seq_AAPL = get_trailing_stock_data("AAPL", -3.5625)
 input_seq_ORCL = get_trailing_stock_data("ORCL", -2.7492)
-# This will use the previous 4 days' data prefixed with the input value (second argument)
+# This will use the previous 4 days' data followed by the input value (second argument)
 ```
 
 ---
