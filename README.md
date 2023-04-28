@@ -55,6 +55,11 @@ To run with custom arguments (MSFT and -0.147)
 python simulator.py MSFT -0.147
 ```
 
+This will run the simulator by using the previous 4 days of real data, and then setting the 5th day change for the provided stock ticker before simulating the performance of the other stocks.
+
+> NOTE: Running the simulator for the first time can take 10-30s to set up.
+> Each simulation takes 5-15s.
+
 ### Downloading Latest Data
 
 Update the `start_date` and `end_date` in `data.py` to the desired date range.
