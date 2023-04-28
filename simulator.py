@@ -237,7 +237,12 @@ if __name__ == "__main__":
     input_seq = get_trailing_stock_data(ticker, change)
 
     # Simulate all the cells in the grid
-    simulations = simulate(grid, ticker, input_seq)
+    try:
+        simulations = simulate(grid, ticker, input_seq)
+    except KeyError as error:
+        raise ValueError(f"Cannot simulate {ticker}. Make sure it is in the S&P 500.")
+    
+    
     # Convert float32 to float64 for json serialization
     simulations = [{k: float(v) for k, v in sim.items()} for sim in simulations]
     # Save the simulations to a file
