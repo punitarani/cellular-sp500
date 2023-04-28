@@ -8,7 +8,7 @@ It is to explore the idea of using cellular automata and neural networks togethe
 of these two fields. The predictions made by the neural networks are not accurate and should not be used for
 investment decisions.
 
-**Read the Notebook for a detailed explanation of the project: [SP500-Cellular-Automata.ipynb](https://github.com/punitarani/cellular-sp500/blob/master/SP500-Cellular-Automata.ipynb)**
+**Read the Notebook for a detailed explanation of the project: [SP500-Cellular-Automata.ipynb](https://github.com/punitarani/cellular-sp500/blob/pdf/SP500-Cellular-Automata.ipynb)**
 
 ## What's special?
 
