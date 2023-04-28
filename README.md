@@ -161,7 +161,9 @@ input_seq_ORCL = get_trailing_stock_data("ORCL", -2.7492)
 
 ---
 
-`jupyter nbconvert --to webpdf --allow-chromium-download`
+To convert the SP500-Cellular-Automata.ipynb notebook to a PDF:
+
+`jupyter nbconvert --to webpdf --allow-chromium-download SP500-Cellular-Automata.ipynb`
 
 ---
 
