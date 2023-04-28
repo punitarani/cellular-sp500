@@ -131,7 +131,7 @@ def save_animation_with_progress_bar(animation, filename, writer, total_frames):
         animation.save(filename, writer=writer, progress_callback=progress_callback)
 
 
-def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], filename: str = "simulation"):
+def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], filename: str = "simulation", save: bool = False):
     fig, ax = plt.subplots()
 
     # Create a colormap with a variant of green for positive values and a variant of red for negative values
@@ -171,18 +171,19 @@ def plot_simulation(grid: pd.DataFrame, simulations: list[dict[str, float]], fil
     ani = FuncAnimation(fig, update, frames=num_frames, repeat=False)
 
     # Save the animation as a video file
-    filename += ".mp4"
-    ffwriter = FFMpegWriter(fps=fps)
-    save_animation_with_progress_bar(ani, filename, ffwriter, num_frames)
-    print(f"Animation saved to {filename}")
+    if save:
+        filename += ".mp4"
+        ffwriter = FFMpegWriter(fps=fps)
+        save_animation_with_progress_bar(ani, filename, ffwriter, num_frames)
+        print(f"Animation saved to {filename}")
 
     plt.show()
 
 
 if __name__ == "__main__":
     # Input data
-    ticker = "JPM"
-    change = -0.381
+    ticker = "AAPL"
+    change = 0.245
 
     filename = f"simulations/simulation_{ticker}"
 
@@ -199,4 +200,4 @@ if __name__ == "__main__":
     print(f"Simulations saved to {filename}.json")
 
     # Plot the animation of the simulations
-    plot_simulation(grid, simulations, filename=filename)
+    plot_simulation(grid, simulations, filename=filename, save=False)
