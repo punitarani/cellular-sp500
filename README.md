@@ -161,4 +161,8 @@ input_seq_ORCL = get_trailing_stock_data("ORCL", -2.7492)
 
 ---
 
+`jupyter nbconvert --to webpdf --allow-chromium-download`
+
+---
+
 Punit Arani
